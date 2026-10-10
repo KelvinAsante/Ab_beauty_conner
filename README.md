@@ -94,5 +94,6 @@ The production build and browser smoke checks pass. The configured project retur
 - Inspect `pg_policies` for every public table and `storage.objects`; verify all client-facing tables have RLS enabled. Test with anon/customer/admin JWTs, not a service-role key.
 
 End-to-end Auth, role-specific writes, Storage uploads, cart ownership, checkout, review eligibility, and payment-provider tests require customer/admin sessions and actual catalog data. Use separate accounts, never a service-role key, and verify RLS through browser/API JWT requests rather than relying only on dashboard SQL Editor behavior.
-#   A b _ b e a u t y _ c o n n e r  
+#   A b _ b e a u t y _ c o n n e r 
+ 
  
