@@ -10,14 +10,19 @@ import {
   ArrowUpRight,
   Bell,
   ChevronDown,
+  ExternalLink,
+  Home,
   Heart,
   LayoutDashboard,
   LogIn,
   LogOut,
   MapPin,
+  MessageCircle,
   Menu,
   Package,
+  Phone,
   Search,
+  SlidersHorizontal,
   ShoppingBag,
   ShoppingCart,
   Settings,
@@ -227,7 +232,7 @@ export function StoreHeader() {
             aria-label="Open shop filters"
             onClick={() => navigate("/shop")}
           >
-            <span className="filter-lines">☷</span>
+            <SlidersHorizontal size={19} />
           </button>
         </form>
       </div>
@@ -257,6 +262,28 @@ export function StoreLayout() {
         <Outlet />
       </main>
       <StoreFooter />
+      <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+        <NavLink to="/" end>
+          <Home size={19} />
+          <span>Home</span>
+        </NavLink>
+        <Link to="/#categories">
+          <LayoutDashboard size={19} />
+          <span>Categories</span>
+        </Link>
+        <Link to="/account/wishlist">
+          <Heart size={19} />
+          <span>Saved</span>
+        </Link>
+        <Link to="/cart">
+          <ShoppingBag size={19} />
+          <span>Bag</span>
+        </Link>
+        <Link to="/account">
+          <UserRound size={19} />
+          <span>Account</span>
+        </Link>
+      </nav>
     </>
   );
 }
@@ -286,18 +313,39 @@ export function StoreFooter() {
           <h3>Customer care</h3>
           <Link to="/account">My account</Link>
           <Link to="/cart">Shopping bag</Link>
-          {contact ? (
-            <a href={`mailto:${contact}`}>Contact support</a>
-          ) : (
-            <span>Store contact details are not configured.</span>
-          )}
+          <a href="https://wa.me/233547767018" target="_blank" rel="noreferrer">
+            Contact support
+          </a>
         </div>
         <div>
           <h3>Stay in touch</h3>
-          <p>
-            {storeSettings?.phone ||
-              "Contact details will appear here when configured."}
-          </p>
+          <a className="footer-contact-link" href="tel:+233547767018">
+            <Phone size={15} /> 054 776 7018 · Call
+          </a>
+          <a
+            className="footer-contact-link"
+            href="https://wa.me/233547767018"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <MessageCircle size={15} /> WhatsApp us
+          </a>
+          <a
+            className="footer-contact-link"
+            href="https://www.facebook.com/Abbeautyconner"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <ExternalLink size={15} /> Facebook · AB Beauty Conner
+          </a>
+          <a
+            className="footer-contact-link"
+            href="https://chat.whatsapp.com/KLMSLwtIMR7JwBH3Gze9ss"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <MessageCircle size={15} /> Join our WhatsApp group
+          </a>
           {contact && (
             <a href={`mailto:${contact}`} className="footer-email">
               {contact} <ArrowUpRight size={15} />

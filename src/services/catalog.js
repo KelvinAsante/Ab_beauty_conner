@@ -51,7 +51,7 @@ export async function getStoreSettings() {
     .eq("id", true)
     .maybeSingle();
   if (error) throw error;
-  return data;
+  return data ? { ...data, currency_code: "GHS" } : data;
 }
 
 export async function getProductReviews(productId, { admin = false } = {}) {
@@ -99,6 +99,22 @@ export async function saveCategory(category, id) {
   const { data, error } = await query.select().single();
   if (error) throw error;
   return data;
+}
+
+export async function uploadCategoryImage(file) {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `categories/${crypto.randomUUID()}.${extension}`;
+  const { error } = await supabase.storage
+    .from("product-images")
+    .upload(path, file, { upsert: false, contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+  return { image_url: data.publicUrl, storage_path: path };
+}
+
+export async function deleteCategoryImage(path) {
+  const { error } = await supabase.storage.from("product-images").remove([path]);
+  if (error) throw error;
 }
 
 export async function uploadProductImages(productId, files) {

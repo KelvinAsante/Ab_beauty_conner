@@ -1,6 +1,8 @@
-export function formatMoney(value, currency = "USD") {
+export const STORE_CURRENCY = "GHS";
+
+export function formatMoney(value, currency = STORE_CURRENCY) {
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat("en-GH", {
       style: "currency",
       currency,
     }).format(Number(value) || 0);

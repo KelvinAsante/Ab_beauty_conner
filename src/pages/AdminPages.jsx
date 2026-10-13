@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   ShoppingCart,
+  Upload,
   Users,
   X,
 } from "lucide-react";
@@ -33,12 +34,14 @@ import {
   listCategories,
   listProducts,
   saveCategory,
+  deleteCategoryImage,
   updateProduct,
+  uploadCategoryImage,
   uploadProductImages,
 } from "../services/catalog.js";
 import { EmptyState, Notice } from "../components/Common.jsx";
 import { useAuth } from "../state/AuthContext.jsx";
-import { formatMoney } from "../utils/money.js";
+import { formatMoney, STORE_CURRENCY } from "../utils/money.js";
 
 function PageTitle({ eyebrow = "STORE WORKSPACE", title, detail, action, to }) {
   return (
@@ -165,6 +168,7 @@ export function AdminDashboard() {
                       <thead>
                         <tr>
                           <th>Order</th>
+                          <th>Phone</th>
                           <th>Date</th>
                           <th>Status</th>
                           <th>Payment</th>
@@ -176,6 +180,11 @@ export function AdminDashboard() {
                           <tr key={order.id}>
                             <td>
                               <b>{order.order_number}</b>
+                            </td>
+                            <td>
+                              <a href={`tel:${order.shipping_phone}`}>
+                                {order.shipping_phone}
+                              </a>
                             </td>
                             <td>
                               {new Date(order.created_at).toLocaleDateString()}
@@ -836,14 +845,29 @@ export function AdminCategories() {
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState("");
   const [formError, setFormError] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreview("");
+      return;
+    }
+    const preview = URL.createObjectURL(imageFile);
+    setImagePreview(preview);
+    return () => URL.revokeObjectURL(preview);
+  }, [imageFile]);
   async function submit(event) {
     event.preventDefault();
     setFormError("");
+    setBusy(true);
+    let uploadedImage = null;
     try {
+      if (imageFile) uploadedImage = await uploadCategoryImage(imageFile);
       await saveCategory(
         {
           ...form,
-          image_url: form.image_url || null,
+          image_url: uploadedImage?.image_url || form.image_url || null,
           description: form.description || null,
         },
         editing,
@@ -857,13 +881,24 @@ export function AdminCategories() {
         image_url: "",
         is_active: true,
       });
+      setImageFile(null);
       refresh();
     } catch (reason) {
+      if (uploadedImage) {
+        try {
+          await deleteCategoryImage(uploadedImage.storage_path);
+        } catch {
+          // Preserve the category save error if storage cleanup fails.
+        }
+      }
       setFormError(reason.message);
+    } finally {
+      setBusy(false);
     }
   }
   function edit(category) {
     setEditing(category.id);
+    setImageFile(null);
     setForm({
       name: category.name,
       slug: category.slug,
@@ -926,7 +961,25 @@ export function AdminCategories() {
             />
           </label>
           <label>
-            Image URL <small>(optional)</small>
+            Upload category image <small>(optional)</small>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              disabled={busy}
+              onChange={(event) =>
+                setImageFile(event.target.files?.[0] || null)
+              }
+            />
+          </label>
+          {(imagePreview || form.image_url) && (
+            <img
+              className="category-image-preview"
+              src={imagePreview || form.image_url}
+              alt="Category preview"
+            />
+          )}
+          <label>
+            Or use an image URL
             <input
               type="url"
               value={form.image_url}
@@ -946,8 +999,9 @@ export function AdminCategories() {
             Active in storefront
           </label>
           <div className="form-button-row">
-            <button className="button button-dark">
-              {editing ? "Save category" : "Add category"}
+            <button className="button button-dark" disabled={busy}>
+              {busy ? "Saving…" : editing ? "Save category" : "Add category"}
+              <Upload size={15} />
             </button>
             {editing && (
               <button
@@ -955,6 +1009,7 @@ export function AdminCategories() {
                 type="button"
                 onClick={() => {
                   setEditing(null);
+                  setImageFile(null);
                   setForm({
                     name: "",
                     slug: "",
@@ -1088,6 +1143,7 @@ export function AdminOrders() {
               <tr>
                 <th>Order</th>
                 <th>Customer</th>
+                <th>Phone</th>
                 <th>Date</th>
                 <th>Total</th>
                 <th>Payment</th>
@@ -1121,6 +1177,11 @@ export function AdminOrders() {
                     </details>
                   </td>
                   <td>{order.shipping_full_name}</td>
+                  <td>
+                    <a href={`tel:${order.shipping_phone}`}>
+                      {order.shipping_phone}
+                    </a>
+                  </td>
                   <td>{new Date(order.created_at).toLocaleDateString()}</td>
                   <td>
                     <b>
@@ -1480,7 +1541,7 @@ export function AdminSettings() {
       .eq("id", true)
       .single();
     if (settingsError) throw settingsError;
-    return data;
+    return { ...data, currency_code: STORE_CURRENCY };
   });
   const [form, setForm] = useState(null);
   const [notice, setNotice] = useState("");
@@ -1498,7 +1559,7 @@ export function AdminSettings() {
         contact_email: form.contact_email || null,
         phone: form.phone || null,
         address: form.address || null,
-        currency_code: form.currency_code,
+        currency_code: STORE_CURRENCY,
         delivery_fee: Number(form.delivery_fee),
       });
       setNotice("Store settings saved.");
@@ -1524,7 +1585,7 @@ export function AdminSettings() {
               <Settings2 />
               <div>
                 <h2>Store information</h2>
-                <p>Shown across checkout and customer support surfaces.</p>
+                <p>Prices are displayed in Ghana cedis (GHS).</p>
               </div>
             </div>
             <label>
@@ -1570,20 +1631,8 @@ export function AdminSettings() {
             </label>
             <div className="form-grid">
               <label>
-                Currency code
-                <input
-                  required
-                  minLength="3"
-                  maxLength="3"
-                  pattern="[A-Z]{3}"
-                  value={form.currency_code}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      currency_code: event.target.value.toUpperCase(),
-                    })
-                  }
-                />
+                Currency
+                <input value="GHS · Ghana cedi" readOnly />
               </label>
               <label>
                 Delivery fee

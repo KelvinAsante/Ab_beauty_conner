@@ -129,7 +129,7 @@ create table if not exists public.store_settings (
   contact_email text,
   phone text,
   address text,
-  currency_code text not null default 'USD' check (currency_code ~ '^[A-Z]{3}$'),
+  currency_code text not null default 'GHS' check (currency_code ~ '^[A-Z]{3}$'),
   delivery_fee numeric(12, 2) not null default 0 check (delivery_fee >= 0),
   updated_at timestamptz not null default now()
 );

@@ -30,7 +30,6 @@ import {
   ShoppingBag,
   SlidersHorizontal,
   Settings2,
-  Sparkles,
   Star,
   Trash2,
   Truck,
@@ -116,29 +115,43 @@ function useStoreData(load) {
 }
 
 const categoryArt = [
-  { match: /hair|wig/, glyph: "✳", tone: "lilac" },
-  { match: /perfume|beauty|skin/, glyph: "❋", tone: "rose" },
-  { match: /women|woman|lady/, glyph: "◌", tone: "peach" },
-  { match: /men|man/, glyph: "◇", tone: "blue" },
-  { match: /shoe|footwear/, glyph: "↗", tone: "sage" },
-  { match: /bag/, glyph: "▱", tone: "butter" },
-  { match: /watch/, glyph: "◷", tone: "ice" },
-  { match: /accessor/, glyph: "✦", tone: "pink" },
+  { match: /hair|wig/, image: "photo-1524504388940-b1c1722653e1" },
+  { match: /perfume|beauty|skin/, image: "photo-1596462502278-27bfdc403348" },
+  {
+    match: /women|woman|lady|dress/,
+    image: "photo-1483985988355-763728e1935b",
+  },
+  { match: /men|man/, image: "photo-1515886657613-9f3515b0c78f" },
+  { match: /shoe|footwear/, image: "photo-1542291026-7eec264c27ff" },
+  { match: /bag/, image: "photo-1553062407-98eeb64c6a62" },
+  { match: /watch/, image: "photo-1523275335684-37898b6baf30" },
+  { match: /accessor/, image: "photo-1611652022419-a9419f74343d" },
 ];
-function CategoryCircle({ category }) {
+function CategoryTile({ category, productCount }) {
   const art =
     categoryArt.find((item) => item.match.test(category.name)) ||
     categoryArt[category.name.length % categoryArt.length];
   return (
-    <Link className="category-shortcut" to={`/category/${category.slug}`}>
-      <span className={`category-art tone-${art.tone}`}>
-        {category.image_url ? (
-          <img src={category.image_url} alt="" />
-        ) : (
-          <i>{art.glyph}</i>
-        )}
+    <Link className="category-tile" to={`/category/${category.slug}`}>
+      <span className="category-tile-image">
+        <img
+          src={
+            category.image_url ||
+            `https://images.unsplash.com/${art.image}?auto=format&fit=crop&w=480&q=80`
+          }
+          alt=""
+          loading="lazy"
+        />
       </span>
-      <span>{category.name}</span>
+      <span className="category-tile-copy">
+        <b>{category.name}</b>
+        <small>
+          {productCount} {productCount === 1 ? "item" : "items"}
+        </small>
+        <span className="category-tile-action">
+          <ArrowRight size={14} />
+        </span>
+      </span>
     </Link>
   );
 }
@@ -210,6 +223,9 @@ export function HomePage() {
   const featured = products.filter((product) => product.is_featured);
   const newArrivals = [...products].slice(0, 8);
   const popular = featured.length ? featured : products;
+  const hairCategory = data.categories.find((category) =>
+    /hair|wig/i.test(category.name),
+  );
   const wish = useWishlistAction();
   return (
     <>
@@ -217,17 +233,16 @@ export function HomePage() {
         <div className="shell hero-layout">
           <div className="hero-copy">
             <span className="hero-kicker">
-              <Sparkles size={15} /> WELCOME TO AB BEAUTY CONNER
+              NEW COLLECTION
             </span>
             <h1>
-              Welcome to <em>AB Beauty Conner.</em>
+              Let your beauty <em>speak</em>
             </h1>
             <p>
-              Beauty and fashion finds for the moments that make you feel most
-              like yourself.
+              Beauty and style picks for the way you want to show up.
             </p>
             <Link to="/shop" className="button button-dark">
-              Explore the collection <ArrowRight size={17} />
+              Shop Now <ArrowRight size={17} />
             </Link>
             <div className="hero-proof">
               <span>
@@ -240,17 +255,36 @@ export function HomePage() {
           </div>
           <div className="hero-image">
             <img
-              src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1300&q=85"
-              alt="Model in a polished contemporary look"
+              src="/images/hero_wig.jpeg"
+              alt="Display of wigs on mannequin stands"
             />
-            <div className="hero-image-caption">
-              <span>THE NEW COLLECTION</span>
-              <b>Made for your kind of beautiful.</b>
-            </div>
             <span className="hero-image-index">01 / 03</span>
           </div>
           <span className="hero-orbit" aria-hidden="true">
             AB
+          </span>
+        </div>
+      </section>
+      <section className="service-notes shell">
+        <div>
+          <ShieldCheck />
+          <span>
+            <b>Premium quality</b>
+            <small>Selected with care</small>
+          </span>
+        </div>
+        <div>
+          <Truck />
+          <span>
+            <b>Fast delivery</b>
+            <small>Home delivery available</small>
+          </span>
+        </div>
+        <div>
+          <Heart />
+          <span>
+            <b>Made for your style</b>
+            <small>Beauty for every day</small>
           </span>
         </div>
       </section>
@@ -267,9 +301,17 @@ export function HomePage() {
         {data.loading ? (
           <div className="category-loading">Loading categories…</div>
         ) : data.categories.length ? (
-          <div className="category-row">
+          <div className="category-grid">
             {data.categories.map((category) => (
-              <CategoryCircle key={category.id} category={category} />
+              <CategoryTile
+                key={category.id}
+                category={category}
+                productCount={
+                  products.filter(
+                    (product) => product.category_id === category.id,
+                  ).length
+                }
+              />
             ))}
           </div>
         ) : (
@@ -287,12 +329,43 @@ export function HomePage() {
           {deals.length > 0 && (
             <ProductShelf
               title="Deals of the day"
-              eyebrow="A LITTLE SOMETHING SPECIAL"
+              eyebrow="REAL SAVINGS ON SELECTED FINDS"
               products={deals.slice(0, 10)}
               to="/shop?deals=true"
               compact
             />
           )}
+          {newArrivals.length > 0 && (
+            <ProductShelf
+              title="New arrivals"
+              eyebrow="JUST ADDED TO THE COLLECTION"
+              products={newArrivals.slice(0, 4)}
+              to="/shop?sort=newest"
+            />
+          )}
+          <section className="deals-banner shell">
+            <div className="deals-banner-copy">
+              <span className="eyebrow">AB BEAUTY CONNER · CHRISTMAS SALE</span>
+              <h2>
+                Quality hair.
+                <br />
+                <em>Beautifully you.</em>
+              </h2>
+              <p>Home delivery available.</p>
+              <Link
+                className="button button-dark"
+                to={hairCategory ? `/category/${hairCategory.slug}` : "/shop"}
+              >
+                Shop hair <ArrowRight size={16} />
+              </Link>
+            </div>
+            <img
+              className="deals-banner-image"
+              src="/images/christmas-hair-sale.jpeg"
+              alt="AB Beauty Conner Christmas sale on quality hair"
+              loading="lazy"
+            />
+          </section>
           {featured.length > 0 && (
             <ProductShelf
               title="Featured finds"
@@ -301,49 +374,6 @@ export function HomePage() {
               to="/shop?featured=true"
             />
           )}
-          <ProductShelf
-            title="Popular right now"
-            eyebrow="THE COMMUNITY PICKS"
-            products={popular.slice(0, 8)}
-            to="/shop"
-          />
-          {newArrivals.length > 0 && (
-            <ProductShelf
-              title="Fresh arrivals"
-              eyebrow="JUST ADDED TO THE EDIT"
-              products={newArrivals}
-              to="/shop?sort=newest"
-              compact
-            />
-          )}
-          <section className="promo-strip shell">
-            <div>
-              <span className="eyebrow">YOUR STYLE, YOUR WAY</span>
-              <h2>
-                Little details.
-                <br />A whole new feeling.
-              </h2>
-              <p>
-                From everyday essentials to the finishing touch, find the pieces
-                that feel like you.
-              </p>
-              <Link className="text-link" to="/shop">
-                Discover your next favorite <ArrowRight size={16} />
-              </Link>
-            </div>
-            <div className="promo-art">
-              <img
-                src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=900&q=85"
-                alt="Carefully selected fashion pieces"
-                loading="lazy"
-              />
-              <span>
-                THE DETAILS
-                <br />
-                <b>MAKE IT YOURS</b>
-              </span>
-            </div>
-          </section>
           {products.length === 0 && (
             <section className="shell catalog-empty-note">
               <span className="eyebrow">THE COLLECTION IS TAKING SHAPE</span>
@@ -358,29 +388,6 @@ export function HomePage() {
           )}
         </>
       )}
-      <section className="service-notes shell">
-        <div>
-          <Truck />
-          <span>
-            <b>Thoughtful delivery</b>
-            <small>Reliable delivery options at checkout</small>
-          </span>
-        </div>
-        <div>
-          <ShieldCheck />
-          <span>
-            <b>Secure by design</b>
-            <small>Your account and payments matter</small>
-          </span>
-        </div>
-        <div>
-          <Heart />
-          <span>
-            <b>Chosen with care</b>
-            <small>Beauty and style for every day</small>
-          </span>
-        </div>
-      </section>
     </>
   );
 }
@@ -926,7 +933,7 @@ export function ProductPage() {
 }
 
 function AuthFrame({
-  eyebrow = "WELCOME TO THE AB EDIT",
+  eyebrow = "WELCOME TO AB BEAUTY CONNER",
   title,
   subtitle,
   children,
@@ -953,7 +960,7 @@ function AuthFrame({
           </Link>
           <span className="eyebrow">{eyebrow}</span>
           <h1>{title}</h1>
-          <p className="auth-subtitle">{subtitle}</p>
+          {subtitle && <p className="auth-subtitle">{subtitle}</p>}
           {children}
         </div>
       </div>
@@ -996,10 +1003,7 @@ export function SignInPage() {
     }
   }
   return (
-    <AuthFrame
-      title="Good to see you."
-      subtitle="Sign in to your account. Customers and store administrators use the same sign-in."
-    >
+    <AuthFrame title="Good to see you." subtitle="">
       <form className="stack-form" onSubmit={submit}>
         <label>
           Email address
@@ -2220,10 +2224,6 @@ export function CheckoutPage() {
               {busy ? "Placing order…" : "Place order"}
               <ArrowRight size={17} />
             </button>
-            <p className="payment-caveat">
-              <ShieldCheck size={15} /> Order totals, prices, and stock are
-              validated by Supabase. This action does not mark payment as paid.
-            </p>
           </aside>
         </form>
       )}
