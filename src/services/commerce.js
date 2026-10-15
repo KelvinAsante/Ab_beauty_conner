@@ -149,6 +149,24 @@ export async function placeOrder({ items, shipping, paymentMethod }) {
   return data;
 }
 
+export async function initializePaystackPayment(shipping) {
+  const { data, error } = await supabase.functions.invoke("initialize-paystack", {
+    body: { shipping },
+  });
+  if (error) throw error;
+  if (!data?.authorization_url) throw new Error("Paystack did not return a payment link");
+  return data.authorization_url;
+}
+
+export async function verifyPaystackPayment(reference) {
+  const { data, error } = await supabase.functions.invoke("verify-paystack", {
+    body: { reference },
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || "Payment verification failed");
+  return data.order;
+}
+
 export async function submitReview({ userId, productId, rating, review }) {
   const { error } = await supabase
     .from("product_reviews")

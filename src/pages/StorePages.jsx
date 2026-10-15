@@ -60,12 +60,14 @@ import {
   listOrders,
   listWishlist,
   loadCart,
+  initializePaystackPayment,
   placeOrder,
   saveAddress,
   setCartQuantity,
   submitReview,
   toggleWishlist,
   removeCartItem,
+  verifyPaystackPayment,
 } from "../services/commerce.js";
 import {
   EmptyState,
@@ -2047,6 +2049,11 @@ export function CheckoutPage() {
     setBusy(true);
     setError("");
     try {
+      if (payment === "paystack") {
+        const authorizationUrl = await initializePaystackPayment(form);
+        window.location.assign(authorizationUrl);
+        return;
+      }
       const orderId = await placeOrder({
         items: cartItems,
         shipping: form,
@@ -2073,10 +2080,7 @@ export function CheckoutPage() {
       <div className="checkout-heading">
         <span className="eyebrow">ALMOST YOURS</span>
         <h1>Delivery details</h1>
-        <p>
-          Your order is placed as unpaid. Payment providers are not connected
-          yet.
-        </p>
+        <p>Choose delivery details and how you would like to pay.</p>
       </div>
       {loading ? (
         <LoadingBlock rows={2} />
@@ -2146,9 +2150,7 @@ export function CheckoutPage() {
                 <CreditCard />
                 <div>
                   <h2>Payment method</h2>
-                  <p>
-                    Payment providers are not configured for this store yet.
-                  </p>
+                  <p>Select online payment or pay when your order arrives.</p>
                 </div>
               </div>
               <label className="radio-option">
@@ -2161,19 +2163,20 @@ export function CheckoutPage() {
                 />
                 <span>
                   <b>Cash on delivery</b>
-                  <small>Payment remains unpaid until verified.</small>
+                  <small>Pay when your order is delivered.</small>
                 </span>
               </label>
-              <label className="radio-option disabled-option">
+              <label className="radio-option">
                 <input
                   type="radio"
                   name="payment"
-                  value="mobile_money"
-                  disabled
+                  value="paystack"
+                  checked={payment === "paystack"}
+                  onChange={(event) => setPayment(event.target.value)}
                 />
                 <span>
-                  <b>Mobile money</b>
-                  <small>Coming after provider setup and testing.</small>
+                  <b>Pay online with Paystack</b>
+                  <small>Pay securely by card or supported mobile money.</small>
                 </span>
               </label>
             </div>
@@ -2221,12 +2224,81 @@ export function CheckoutPage() {
               className="button button-dark button-wide"
               disabled={busy || cartItems.length === 0}
             >
-              {busy ? "Placing order…" : "Place order"}
+              {busy
+                ? payment === "paystack"
+                  ? "Connecting to Paystack…"
+                  : "Placing order…"
+                : payment === "paystack"
+                  ? "Continue to Paystack"
+                  : "Place order"}
               <ArrowRight size={17} />
             </button>
           </aside>
         </form>
       )}
+    </section>
+  );
+}
+
+export function PaymentReturnPage() {
+  const [searchParams] = useSearchParams();
+  const { refreshCustomerData, user } = useAuth();
+  const reference = searchParams.get("reference") || searchParams.get("trxref");
+  const [state, setState] = useState({ loading: true, error: "", order: null });
+
+  useEffect(() => {
+    let active = true;
+    if (!reference) {
+      setState({ loading: false, error: "Paystack reference is missing.", order: null });
+      return () => {
+        active = false;
+      };
+    }
+    verifyPaystackPayment(reference)
+      .then(async (order) => {
+        await refreshCustomerData(user.id);
+        if (active) setState({ loading: false, error: "", order });
+      })
+      .catch((reason) => {
+        if (active)
+          setState({
+            loading: false,
+            error: reason.message || "We could not confirm this payment.",
+            order: null,
+          });
+      });
+    return () => {
+      active = false;
+    };
+  }, [reference]);
+
+  return (
+    <section className="shell page-space">
+      <div className="auth-card payment-return-card">
+        <span className="eyebrow">PAYSTACK PAYMENT</span>
+        {state.loading ? (
+          <>
+            <h1>Confirming your payment</h1>
+            <p>Please keep this page open while we verify the transaction.</p>
+          </>
+        ) : state.order ? (
+          <>
+            <h1>Payment received</h1>
+            <p>Your order {state.order.order_number} is confirmed.</p>
+            <Link className="button button-dark" to="/account/orders">
+              View your orders <ArrowRight size={16} />
+            </Link>
+          </>
+        ) : (
+          <>
+            <h1>Payment not confirmed</h1>
+            <p>{state.error}</p>
+            <Link className="button button-outline" to="/checkout">
+              Return to checkout <ArrowRight size={16} />
+            </Link>
+          </>
+        )}
+      </div>
     </section>
   );
 }

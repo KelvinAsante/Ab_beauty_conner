@@ -55,6 +55,11 @@ const CheckoutPage = lazy(() =>
     default: module.CheckoutPage,
   })),
 );
+const PaymentReturnPage = lazy(() =>
+  import("./pages/StorePages.jsx").then((module) => ({
+    default: module.PaymentReturnPage,
+  })),
+);
 const AccountPage = lazy(() =>
   import("./pages/StorePages.jsx").then((module) => ({
     default: module.AccountPage,
@@ -158,6 +163,7 @@ function AppRoutes() {
           <Route element={<AuthGuard />}>
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/payment/return" element={<PaymentReturnPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/account/orders" element={<OrdersPage />} />
             <Route path="/account/addresses" element={<AddressesPage />} />

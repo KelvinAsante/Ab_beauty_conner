@@ -1,7 +1,7 @@
 export type UserRole = 'customer' | 'admin';
 export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
-export type PaymentMethod = 'cash_on_delivery' | 'mobile_money' | 'card' | 'bank_transfer';
+export type PaymentMethod = 'cash_on_delivery' | 'mobile_money' | 'card' | 'bank_transfer' | 'paystack';
 
 export interface Profile {
   id: string;
