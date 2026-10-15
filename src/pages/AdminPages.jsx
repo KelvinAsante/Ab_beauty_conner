@@ -1168,9 +1168,30 @@ export function AdminOrders() {
                           {order.shipping_region}
                         </p>
                         {(order.order_items || []).map((item) => (
-                          <div key={item.id}>
-                            {item.product_name} × {item.quantity}{" "}
-                            <b>{Number(item.subtotal).toFixed(2)}</b>
+                          <div className="admin-order-item" key={item.id}>
+                            <span className="admin-order-item-image">
+                              {item.products?.main_image_url ||
+                              item.products?.product_images?.length ? (
+                                <img
+                                  src={
+                                    item.products?.main_image_url ||
+                                    [...(item.products?.product_images || [])]
+                                      .sort(
+                                        (left, right) =>
+                                          left.display_order - right.display_order,
+                                      )[0]?.image_url
+                                  }
+                                  alt={item.product_name}
+                                />
+                              ) : (
+                                <Package size={17} />
+                              )}
+                            </span>
+                            <span className="admin-order-item-copy">
+                              <b>{item.product_name}</b>
+                              <small>Qty {item.quantity}</small>
+                            </span>
+                            <strong>{Number(item.subtotal).toFixed(2)}</strong>
                           </div>
                         ))}
                       </div>

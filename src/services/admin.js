@@ -74,7 +74,9 @@ export async function getAdminSummary() {
 export async function listAllOrders() {
   const { data, error } = await supabase
     .from("orders")
-    .select("*,order_items(*)")
+    .select(
+      "*,order_items(*,products(main_image_url,product_images(image_url,display_order)))",
+    )
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
