@@ -262,28 +262,6 @@ export function StoreLayout() {
         <Outlet />
       </main>
       <StoreFooter />
-      <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-        <NavLink to="/" end>
-          <Home size={19} />
-          <span>Home</span>
-        </NavLink>
-        <Link to="/#categories">
-          <LayoutDashboard size={19} />
-          <span>Categories</span>
-        </Link>
-        <Link to="/account/wishlist">
-          <Heart size={19} />
-          <span>Saved</span>
-        </Link>
-        <Link to="/cart">
-          <ShoppingBag size={19} />
-          <span>Bag</span>
-        </Link>
-        <Link to="/account">
-          <UserRound size={19} />
-          <span>Account</span>
-        </Link>
-      </nav>
     </>
   );
 }
