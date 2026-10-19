@@ -1598,6 +1598,17 @@ p {
   background-position: center 33%;
   background-size: cover;
 }
+.auth-page-signin .auth-aside:before,
+.auth-page-signin .auth-aside-content,
+.auth-page-signup .auth-aside:before,
+.auth-page-signup .auth-aside-content {
+  display: none;
+}
+.auth-page-signin .auth-aside-photo,
+.auth-page-signup .auth-aside-photo {
+  background-image: url("/images/login.jpg");
+  background-position: center;
+}
 .auth-aside-content {
   position: relative;
   z-index: 2;

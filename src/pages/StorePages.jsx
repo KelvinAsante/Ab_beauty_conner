@@ -939,9 +939,10 @@ function AuthFrame({
   title,
   subtitle,
   children,
+  className = "",
 }) {
   return (
-    <section className="auth-page">
+    <section className={`auth-page ${className}`}>
       <div className="auth-aside">
         <div className="auth-aside-content">
           <span className="auth-monogram">AB</span>
@@ -1005,7 +1006,11 @@ export function SignInPage() {
     }
   }
   return (
-    <AuthFrame title="Good to see you." subtitle="">
+    <AuthFrame
+      className="auth-page-signin"
+      title="Good to see you."
+      subtitle=""
+    >
       <form className="stack-form" onSubmit={submit}>
         <label>
           Email address
@@ -1086,6 +1091,7 @@ export function SignUpPage() {
   }
   return (
     <AuthFrame
+      className="auth-page-signup"
       eyebrow="A GOOD PLACE TO BEGIN"
       title="Create your account."
       subtitle="Join the AB Beauty Conner community. New accounts are customer accounts."
