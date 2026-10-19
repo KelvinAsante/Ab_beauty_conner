@@ -4056,14 +4056,17 @@ p {
     background: transparent;
     text-align: center;
   }
+  .category-grid .category-tile:nth-child(n) {
+    background: transparent;
+  }
   .category-tile-image {
     width: 62px;
     min-height: 62px;
     height: 62px;
     overflow: hidden;
-    border: 1px solid #f0edf3;
+    border: 1px solid transparent;
     border-radius: 50%;
-    background: #f2eafa;
+    background: transparent;
   }
   .category-tile-copy {
     display: flex;
