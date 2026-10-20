@@ -54,7 +54,6 @@ import {
   listProducts,
 } from "../services/catalog.js";
 import {
-  addCartItem,
   deleteAddress,
   listAddresses,
   listOrders,
@@ -65,7 +64,6 @@ import {
   saveAddress,
   setCartQuantity,
   submitReview,
-  toggleWishlist,
   removeCartItem,
   verifyPaystackPayment,
 } from "../services/commerce.js";
@@ -79,13 +77,10 @@ import {
 import { formatMoney } from "../utils/money.js";
 
 function useWishlistAction() {
-  const { user, wishlistIds, refreshCustomerData } = useAuth();
-  const navigate = useNavigate();
-  return async (productId, saved) => {
-    if (!user) return navigate("/signin");
+  const { toggleProductWishlist } = useAuth();
+  return async (product, saved) => {
     try {
-      await toggleWishlist(user.id, productId, saved);
-      await refreshCustomerData(user.id);
+      await toggleProductWishlist(product, saved);
     } catch (error) {
       window.alert(error.message);
     }
@@ -625,8 +620,13 @@ export function ShopPage() {
 
 export function ProductPage() {
   const { slug } = useParams();
-  const { user, wishlistIds, refreshCustomerData, storeSettings } = useAuth();
-  const navigate = useNavigate();
+  const {
+    user,
+    wishlistIds,
+    addProductToCart,
+    toggleProductWishlist,
+    storeSettings,
+  } = useAuth();
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -661,10 +661,8 @@ export function ProductPage() {
     };
   }, [slug]);
   async function addToCart() {
-    if (!user) return navigate("/signin");
     try {
-      await addCartItem(user.id, product.id, quantity);
-      await refreshCustomerData(user.id);
+      await addProductToCart(product, quantity);
       setNotice("Added to your bag.");
       setError("");
     } catch (reason) {
@@ -672,14 +670,8 @@ export function ProductPage() {
     }
   }
   async function saveToWishlist() {
-    if (!user) return navigate("/signin");
     try {
-      await toggleWishlist(
-        user.id,
-        product.id,
-        wishlistIds.includes(product.id),
-      );
-      await refreshCustomerData(user.id);
+      await toggleProductWishlist(product, wishlistIds.includes(product.id));
     } catch (reason) {
       setError(reason.message);
     }
@@ -972,7 +964,7 @@ function AuthFrame({
 }
 
 export function SignInPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, completeAuthentication } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
@@ -980,23 +972,23 @@ export function SignInPage() {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const destination = (role) => {
+    const from = location.state?.from;
+    if (from?.pathname)
+      return `${from.pathname}${from.search || ""}${from.hash || ""}`;
+    return role === "admin" ? "/admin/dashboard" : "/account";
+  };
   useEffect(() => {
-    if (user && profile)
-      navigate(profile.role === "admin" ? "/admin/dashboard" : "/account", {
-        replace: true,
-      });
-  }, [user, profile, navigate]);
+    if (user && profile) navigate(destination(profile.role), { replace: true });
+  }, [user, profile, navigate, location.state]);
   async function submit(event) {
     event.preventDefault();
     setBusy(true);
     setError("");
     try {
       const result = await signIn(email, password);
-      navigate(
-        location.state?.from?.pathname ||
-          (result.profile.role === "admin" ? "/admin/dashboard" : "/account"),
-        { replace: true },
-      );
+      await completeAuthentication(result.user.id);
+      navigate(destination(result.profile.role), { replace: true });
     } catch (reason) {
       setError(
         reason.message || "Sign-in failed. Check your details and try again.",
@@ -1053,7 +1045,10 @@ export function SignInPage() {
           <ArrowRight size={17} />
         </button>
         <p className="auth-switch">
-          New here? <Link to="/signup">Create a customer account</Link>
+          New here?{" "}
+          <Link to="/signup" state={location.state}>
+            Create a customer account
+          </Link>
         </p>
       </form>
     </AuthFrame>
@@ -1061,7 +1056,9 @@ export function SignInPage() {
 }
 
 export function SignUpPage() {
+  const { completeAuthentication } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -1081,8 +1078,16 @@ export function SignUpPage() {
     setBusy(true);
     try {
       const data = await signUp(form);
-      if (data.session) navigate("/account");
-      else setSuccess("Check your inbox to verify your email, then sign in.");
+      if (data.session) {
+        await completeAuthentication(data.user.id);
+        const from = location.state?.from;
+        navigate(
+          from?.pathname
+            ? `${from.pathname}${from.search || ""}${from.hash || ""}`
+            : "/account",
+          { replace: true },
+        );
+      } else setSuccess("Check your inbox to verify your email, then sign in.");
     } catch (reason) {
       setError(reason.message);
     } finally {
@@ -1153,7 +1158,10 @@ export function SignUpPage() {
           <ArrowRight size={17} />
         </button>
         <p className="auth-switch">
-          Already a customer? <Link to="/signin">Sign in</Link>
+          Already a customer?{" "}
+          <Link to="/signin" state={location.state}>
+            Sign in
+          </Link>
         </p>
       </form>
     </AuthFrame>
@@ -1739,11 +1747,17 @@ export function AddressesPage() {
 }
 
 export function WishlistPage() {
-  const { user, refreshCustomerData } = useAuth();
+  const { user, guestWishlist, refreshCustomerData, toggleProductWishlist } =
+    useAuth();
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   async function refresh() {
+    if (!user) {
+      setItems(guestWishlist);
+      setLoading(false);
+      return;
+    }
     try {
       setItems(await listWishlist(user.id));
     } catch (reason) {
@@ -1754,11 +1768,12 @@ export function WishlistPage() {
   }
   useEffect(() => {
     refresh();
-  }, [user.id]);
-  async function remove(productId) {
+  }, [user?.id, guestWishlist]);
+  async function remove(item) {
     try {
-      await toggleWishlist(user.id, productId, true);
-      await Promise.all([refresh(), refreshCustomerData(user.id)]);
+      await toggleProductWishlist(item.products, true);
+      await refresh();
+      if (user) await refreshCustomerData(user.id);
     } catch (reason) {
       setError(reason.message);
     }
@@ -1784,7 +1799,7 @@ export function WishlistPage() {
                 <ProductCard product={item.products} />
                 <button
                   className="wishlist-remove"
-                  onClick={() => remove(item.product_id)}
+                  onClick={() => remove(item)}
                 >
                   <Trash2 size={15} />
                   Remove
@@ -1804,11 +1819,23 @@ export function WishlistPage() {
 }
 
 export function CartPage() {
-  const { user, refreshCustomerData, storeSettings } = useAuth();
+  const {
+    user,
+    guestCart,
+    refreshCustomerData,
+    setGuestCartItemQuantity,
+    deleteGuestCartItem,
+    storeSettings,
+  } = useAuth();
   const [cart, setCart] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   async function refresh() {
+    if (!user) {
+      setCart(guestCart);
+      setLoading(false);
+      return;
+    }
     try {
       const result = await loadCart(user.id);
       setCart(result.items);
@@ -1820,10 +1847,15 @@ export function CartPage() {
   }
   useEffect(() => {
     refresh();
-  }, [user.id]);
+  }, [user?.id, guestCart]);
   async function change(item, quantity) {
     if (quantity > (item.products?.stock_quantity || 0))
       return setError("Quantity exceeds available stock.");
+    if (!user) {
+      setGuestCartItemQuantity(item.id, quantity);
+      setError("");
+      return;
+    }
     try {
       await setCartQuantity(item.id, quantity);
       await Promise.all([refresh(), refreshCustomerData(user.id)]);
@@ -1833,6 +1865,10 @@ export function CartPage() {
     }
   }
   async function remove(item) {
+    if (!user) {
+      deleteGuestCartItem(item.id);
+      return;
+    }
     try {
       await removeCartItem(item.id);
       await Promise.all([refresh(), refreshCustomerData(user.id)]);

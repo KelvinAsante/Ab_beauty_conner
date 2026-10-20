@@ -160,14 +160,14 @@ function AppRoutes() {
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/account/wishlist" element={<WishlistPage />} />
           <Route element={<AuthGuard />}>
-            <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/payment/return" element={<PaymentReturnPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/account/orders" element={<OrdersPage />} />
             <Route path="/account/addresses" element={<AddressesPage />} />
-            <Route path="/account/wishlist" element={<WishlistPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

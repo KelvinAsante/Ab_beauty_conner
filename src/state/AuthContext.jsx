@@ -1,7 +1,17 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase.js";
 import { getProfile } from "../services/auth.js";
-import { listWishlist, loadCart } from "../services/commerce.js";
+import {
+  addCartItem,
+  listWishlist,
+  loadCart,
+  mergeGuestShoppingData,
+  readGuestCart,
+  readGuestWishlist,
+  saveGuestCart,
+  saveGuestWishlist,
+  toggleWishlist,
+} from "../services/commerce.js";
 import { getStoreSettings } from "../services/catalog.js";
 
 const AuthContext = createContext(null);
@@ -11,7 +21,9 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
-  const [wishlistIds, setWishlistIds] = useState([]);
+  const [serverWishlistIds, setServerWishlistIds] = useState([]);
+  const [guestCart, setGuestCart] = useState(readGuestCart);
+  const [guestWishlist, setGuestWishlist] = useState(readGuestWishlist);
   const [storeSettings, setStoreSettings] = useState(null);
 
   async function refreshCustomerData(userId) {
@@ -21,11 +33,81 @@ export function AuthProvider({ children }) {
         listWishlist(userId),
       ]);
       setCartCount(items.reduce((sum, item) => sum + item.quantity, 0));
-      setWishlistIds(wishlist.map((item) => item.product_id));
+      setServerWishlistIds(wishlist.map((item) => item.product_id));
     } catch {
       setCartCount(0);
-      setWishlistIds([]);
+      setServerWishlistIds([]);
     }
+  }
+
+  async function addProductToCart(product, quantity = 1) {
+    if (session?.user) {
+      await addCartItem(session.user.id, product.id, quantity);
+      await refreshCustomerData(session.user.id);
+      return;
+    }
+    const existing = guestCart.find((item) => item.product_id === product.id);
+    const nextCart = existing
+      ? guestCart.map((item) =>
+          item.product_id === product.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item,
+        )
+      : [
+          ...guestCart,
+          {
+            id: `guest-${product.id}`,
+            product_id: product.id,
+            quantity,
+            products: product,
+          },
+        ];
+    saveGuestCart(nextCart);
+    setGuestCart(nextCart);
+  }
+
+  async function toggleProductWishlist(product, currentlySaved) {
+    if (session?.user) {
+      await toggleWishlist(session.user.id, product.id, currentlySaved);
+      await refreshCustomerData(session.user.id);
+      return;
+    }
+    const nextWishlist = currentlySaved
+      ? guestWishlist.filter((item) => item.product_id !== product.id)
+      : [
+          ...guestWishlist,
+          {
+            id: `guest-wishlist-${product.id}`,
+            product_id: product.id,
+            products: product,
+          },
+        ];
+    saveGuestWishlist(nextWishlist);
+    setGuestWishlist(nextWishlist);
+  }
+
+  function setGuestCartItemQuantity(itemId, quantity) {
+    const nextCart =
+      quantity < 1
+        ? guestCart.filter((item) => item.id !== itemId)
+        : guestCart.map((item) =>
+            item.id === itemId ? { ...item, quantity } : item,
+          );
+    saveGuestCart(nextCart);
+    setGuestCart(nextCart);
+  }
+
+  function deleteGuestCartItem(itemId) {
+    const nextCart = guestCart.filter((item) => item.id !== itemId);
+    saveGuestCart(nextCart);
+    setGuestCart(nextCart);
+  }
+
+  async function completeAuthentication(userId) {
+    await mergeGuestShoppingData(userId);
+    setGuestCart(readGuestCart());
+    setGuestWishlist(readGuestWishlist());
+    await refreshCustomerData(userId);
   }
 
   async function refreshProfile(userId) {
@@ -52,6 +134,13 @@ export function AuthProvider({ children }) {
       if (!alive) return;
       setSession(data.session);
       if (data.session?.user) {
+        try {
+          await mergeGuestShoppingData(data.session.user.id);
+          setGuestCart(readGuestCart());
+          setGuestWishlist(readGuestWishlist());
+        } catch (error) {
+          console.error("Unable to restore guest shopping data.", error);
+        }
         await refreshProfile(data.session.user.id);
         await refreshCustomerData(data.session.user.id);
       }
@@ -63,6 +152,13 @@ export function AuthProvider({ children }) {
         if (nextSession?.user) {
           setLoading(true);
           window.setTimeout(async () => {
+            try {
+              await mergeGuestShoppingData(nextSession.user.id);
+              setGuestCart(readGuestCart());
+              setGuestWishlist(readGuestWishlist());
+            } catch (error) {
+              console.error("Unable to restore guest shopping data.", error);
+            }
             await refreshProfile(nextSession.user.id);
             await refreshCustomerData(nextSession.user.id);
             if (alive) setLoading(false);
@@ -70,7 +166,7 @@ export function AuthProvider({ children }) {
         } else {
           setProfile(null);
           setCartCount(0);
-          setWishlistIds([]);
+          setServerWishlistIds([]);
           setLoading(false);
         }
       },
@@ -86,11 +182,22 @@ export function AuthProvider({ children }) {
     user: session?.user ?? null,
     profile,
     loading,
-    cartCount,
-    wishlistIds,
+    cartCount: session?.user
+      ? cartCount
+      : guestCart.reduce((sum, item) => sum + item.quantity, 0),
+    wishlistIds: session?.user
+      ? serverWishlistIds
+      : guestWishlist.map((item) => item.product_id),
+    guestCart,
+    guestWishlist,
     storeSettings,
     refreshProfile,
     refreshCustomerData,
+    addProductToCart,
+    toggleProductWishlist,
+    setGuestCartItemQuantity,
+    deleteGuestCartItem,
+    completeAuthentication,
     setProfile,
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

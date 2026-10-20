@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ArrowRight, Heart, PackageOpen, ShoppingBag } from "lucide-react";
 import { useAuth } from "../state/AuthContext.jsx";
 import { formatMoney } from "../utils/money.js";
-import { addCartItem } from "../services/commerce.js";
 
 export function Notice({ message, kind = "error" }) {
   if (!message) return null;
@@ -47,8 +46,12 @@ export function LoadingBlock({ rows = 4 }) {
 }
 
 export function ProductCard({ product, compact = false, onWishlistChange }) {
-  const { user, wishlistIds, storeSettings, refreshCustomerData } = useAuth();
-  const navigate = useNavigate();
+  const {
+    wishlistIds,
+    storeSettings,
+    addProductToCart,
+    toggleProductWishlist,
+  } = useAuth();
   const [quickAddState, setQuickAddState] = useState("");
   const saved = wishlistIds.includes(product.id);
   const price =
@@ -61,17 +64,23 @@ export function ProductCard({ product, compact = false, onWishlistChange }) {
       ? Math.round((1 - price / Number(product.price)) * 100)
       : 0;
   async function quickAdd() {
-    if (!user) return navigate("/signin");
     if (product.stock_quantity < 1) return;
     setQuickAddState("Adding…");
     try {
-      await addCartItem(user.id, product.id, 1);
-      await refreshCustomerData(user.id);
+      await addProductToCart(product, 1);
       setQuickAddState("Added");
       window.setTimeout(() => setQuickAddState(""), 1600);
     } catch {
       setQuickAddState("Unavailable");
       window.setTimeout(() => setQuickAddState(""), 2200);
+    }
+  }
+  async function toggleFavorite() {
+    try {
+      if (onWishlistChange) await onWishlistChange(product, saved);
+      else await toggleProductWishlist(product, saved);
+    } catch (error) {
+      window.alert(error.message);
     }
   }
   return (
@@ -89,14 +98,8 @@ export function ProductCard({ product, compact = false, onWishlistChange }) {
       <button
         className={`wishlist-button ${saved ? "saved" : ""}`}
         aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
-        title={
-          user
-            ? saved
-              ? "Remove from wishlist"
-              : "Add to wishlist"
-            : "Sign in to save"
-        }
-        onClick={async () => onWishlistChange?.(product.id, saved)}
+        title={saved ? "Remove from wishlist" : "Add to wishlist"}
+        onClick={toggleFavorite}
       >
         <Heart size={18} fill={saved ? "currentColor" : "none"} />
       </button>

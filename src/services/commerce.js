@@ -1,5 +1,68 @@
 import { supabase } from "../lib/supabase.js";
 
+const GUEST_CART_KEY = "ab-beauty-guest-cart";
+const GUEST_WISHLIST_KEY = "ab-beauty-guest-wishlist";
+const guestMergePromises = new Map();
+
+function readStoredItems(key) {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch (error) {
+    console.error(`Unable to read ${key} from local storage.`, error);
+    return [];
+  }
+}
+
+export function readGuestCart() {
+  return readStoredItems(GUEST_CART_KEY);
+}
+
+export function saveGuestCart(items) {
+  window.localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
+}
+
+export function readGuestWishlist() {
+  return readStoredItems(GUEST_WISHLIST_KEY);
+}
+
+export function saveGuestWishlist(items) {
+  window.localStorage.setItem(GUEST_WISHLIST_KEY, JSON.stringify(items));
+}
+
+async function mergeGuestShoppingDataForUser(userId) {
+  const cart = readGuestCart();
+  for (const item of cart) {
+    await addCartItem(userId, item.product_id, item.quantity);
+    saveGuestCart(
+      readGuestCart().filter((entry) => entry.product_id !== item.product_id),
+    );
+  }
+
+  const wishlist = readGuestWishlist();
+  const savedItems = await listWishlist(userId);
+  const savedIds = new Set(savedItems.map((item) => item.product_id));
+  for (const item of wishlist) {
+    if (!savedIds.has(item.product_id))
+      await toggleWishlist(userId, item.product_id, false);
+    saveGuestWishlist(
+      readGuestWishlist().filter(
+        (entry) => entry.product_id !== item.product_id,
+      ),
+    );
+  }
+}
+
+export function mergeGuestShoppingData(userId) {
+  const pending = guestMergePromises.get(userId);
+  if (pending) return pending;
+  const merge = mergeGuestShoppingDataForUser(userId).finally(() =>
+    guestMergePromises.delete(userId),
+  );
+  guestMergePromises.set(userId, merge);
+  return merge;
+}
+
 export async function loadCart(userId) {
   const { data: cart, error: cartError } = await supabase
     .from("carts")
@@ -150,11 +213,15 @@ export async function placeOrder({ items, shipping, paymentMethod }) {
 }
 
 export async function initializePaystackPayment(shipping) {
-  const { data, error } = await supabase.functions.invoke("initialize-paystack", {
-    body: { shipping },
-  });
+  const { data, error } = await supabase.functions.invoke(
+    "initialize-paystack",
+    {
+      body: { shipping },
+    },
+  );
   if (error) throw error;
-  if (!data?.authorization_url) throw new Error("Paystack did not return a payment link");
+  if (!data?.authorization_url)
+    throw new Error("Paystack did not return a payment link");
   return data.authorization_url;
 }
 
@@ -163,19 +230,18 @@ export async function verifyPaystackPayment(reference) {
     body: { reference },
   });
   if (error) throw error;
-  if (!data?.success) throw new Error(data?.error || "Payment verification failed");
+  if (!data?.success)
+    throw new Error(data?.error || "Payment verification failed");
   return data.order;
 }
 
 export async function submitReview({ userId, productId, rating, review }) {
-  const { error } = await supabase
-    .from("product_reviews")
-    .insert({
-      user_id: userId,
-      product_id: productId,
-      rating,
-      review,
-      is_approved: false,
-    });
+  const { error } = await supabase.from("product_reviews").insert({
+    user_id: userId,
+    product_id: productId,
+    rating,
+    review,
+    is_approved: false,
+  });
   if (error) throw error;
 }
