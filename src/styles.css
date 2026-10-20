@@ -2237,6 +2237,79 @@ p {
   color: #8a828e;
   font-size: 9px;
 }
+.payment-option {
+  align-items: flex-start;
+  gap: 10px !important;
+}
+.payment-selection-mark {
+  width: 19px;
+  height: 19px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--purple);
+  color: #fff;
+}
+.payment-option-copy {
+  min-width: 0;
+}
+.payment-option-copy > b,
+.payment-option-copy > small {
+  display: block;
+}
+.mobile-money-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 11px;
+}
+.mobile-money-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #655b6c;
+  font-size: 9px;
+  font-weight: 700;
+}
+.mobile-money-heading svg {
+  color: var(--purple);
+}
+.mobile-money-brands {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.mobile-money-brand {
+  min-height: 23px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  border: 1px solid #e8e3eb;
+  border-radius: 5px;
+  background: #fff;
+  color: #302a34;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+.mobile-money-brand.mtn {
+  border-color: #f5d735;
+  background: #ffdf00;
+  color: #181818;
+}
+.mobile-money-brand.telecel {
+  border-color: #f1dadd;
+  color: #c62838;
+}
+.mobile-money-brand.airteltigo {
+  border-color: #eedce8;
+  color: #a51e62;
+}
 .disabled-option {
   opacity: 0.55;
 }

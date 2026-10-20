@@ -28,6 +28,7 @@ import {
   Search,
   ShieldCheck,
   ShoppingBag,
+  Smartphone,
   SlidersHorizontal,
   Settings2,
   Star,
@@ -60,7 +61,6 @@ import {
   listWishlist,
   loadCart,
   initializePaystackPayment,
-  placeOrder,
   saveAddress,
   setCartQuantity,
   submitReview,
@@ -2035,8 +2035,7 @@ export function CartPage() {
 }
 
 export function CheckoutPage() {
-  const { user, profile, refreshCustomerData } = useAuth();
-  const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [settings, setSettings] = useState(null);
@@ -2048,7 +2047,6 @@ export function CheckoutPage() {
     region: "",
     country: "Ghana",
   });
-  const [payment, setPayment] = useState("cash_on_delivery");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -2091,18 +2089,8 @@ export function CheckoutPage() {
     setBusy(true);
     setError("");
     try {
-      if (payment === "paystack") {
-        const authorizationUrl = await initializePaystackPayment(form);
-        window.location.assign(authorizationUrl);
-        return;
-      }
-      const orderId = await placeOrder({
-        items: cartItems,
-        shipping: form,
-        paymentMethod: payment,
-      });
-      await refreshCustomerData(user.id);
-      navigate("/account/orders", { state: { placed: orderId } });
+      const authorizationUrl = await initializePaystackPayment(form);
+      window.location.assign(authorizationUrl);
     } catch (reason) {
       setError(
         reason.message ||
@@ -2122,7 +2110,7 @@ export function CheckoutPage() {
       <div className="checkout-heading">
         <span className="eyebrow">ALMOST YOURS</span>
         <h1>Delivery details</h1>
-        <p>Choose delivery details and how you would like to pay.</p>
+        <p>Enter your delivery details and pay securely online with Paystack.</p>
       </div>
       {loading ? (
         <LoadingBlock rows={2} />
@@ -2192,35 +2180,36 @@ export function CheckoutPage() {
                 <CreditCard />
                 <div>
                   <h2>Payment method</h2>
-                  <p>Select online payment or pay when your order arrives.</p>
+                  <p>Complete your payment securely online with Paystack.</p>
                 </div>
               </div>
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="cash_on_delivery"
-                  checked={payment === "cash_on_delivery"}
-                  onChange={(event) => setPayment(event.target.value)}
-                />
-                <span>
-                  <b>Cash on delivery</b>
-                  <small>Pay when your order is delivered.</small>
+              <div className="radio-option payment-option">
+                <span className="payment-selection-mark" aria-hidden="true">
+                  <Check size={13} />
                 </span>
-              </label>
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="paystack"
-                  checked={payment === "paystack"}
-                  onChange={(event) => setPayment(event.target.value)}
-                />
-                <span>
+                <div className="payment-option-copy">
                   <b>Pay online with Paystack</b>
-                  <small>Pay securely by card or supported mobile money.</small>
-                </span>
-              </label>
+                  <small>Pay securely by card or mobile money.</small>
+                  <div
+                    className="mobile-money-options"
+                    aria-label="Mobile money options"
+                  >
+                    <span className="mobile-money-heading">
+                      <Smartphone size={13} />
+                      Mobile money
+                    </span>
+                    <span className="mobile-money-brands">
+                      <span className="mobile-money-brand mtn">MTN</span>
+                      <span className="mobile-money-brand telecel">
+                        Telecel
+                      </span>
+                      <span className="mobile-money-brand airteltigo">
+                        AirtelTigo
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
             <Notice message={error} />
           </div>
@@ -2266,13 +2255,7 @@ export function CheckoutPage() {
               className="button button-dark button-wide"
               disabled={busy || cartItems.length === 0}
             >
-              {busy
-                ? payment === "paystack"
-                  ? "Connecting to Paystack…"
-                  : "Placing order…"
-                : payment === "paystack"
-                  ? "Continue to Paystack"
-                  : "Place order"}
+              {busy ? "Connecting to Paystack…" : "Continue to Paystack"}
               <ArrowRight size={17} />
             </button>
           </aside>
