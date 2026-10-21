@@ -83,6 +83,8 @@ export interface Order {
   shipping_region: string;
   payment_status: PaymentStatus;
   payment_method: PaymentMethod | null;
+  payment_reference: string | null;
+  payment_transaction_id: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -195,6 +195,18 @@ export async function listOrders(userId) {
   return data ?? [];
 }
 
+export async function getOrder(userId, orderId) {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*,order_items(*)")
+    .eq("user_id", userId)
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("This order could not be found.");
+  return data;
+}
+
 export async function placeOrder({ items, shipping, paymentMethod }) {
   const { data, error } = await supabase.rpc("place_order", {
     p_items: items.map(({ product_id, quantity }) => ({

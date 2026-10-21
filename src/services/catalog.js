@@ -66,6 +66,17 @@ export async function getProductReviews(productId, { admin = false } = {}) {
   return data ?? [];
 }
 
+export async function getStoreReviews(limit = 60) {
+  const { data, error } = await supabase
+    .from("product_reviews")
+    .select("id,rating,review,created_at,products(name,slug)")
+    .eq("is_approved", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function createProduct(product) {
   const { data, error } = await supabase
     .from("products")

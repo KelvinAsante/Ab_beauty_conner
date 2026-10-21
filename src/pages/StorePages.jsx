@@ -17,6 +17,7 @@ import {
   CircleUserRound,
   Clock3,
   CreditCard,
+  Download,
   Eye,
   EyeOff,
   Heart,
@@ -25,6 +26,7 @@ import {
   Minus,
   PackageCheck,
   Plus,
+  Printer,
   Search,
   ShieldCheck,
   ShoppingBag,
@@ -56,6 +58,7 @@ import {
 } from "../services/catalog.js";
 import {
   deleteAddress,
+  getOrder,
   listAddresses,
   listOrders,
   listWishlist,
@@ -85,6 +88,79 @@ function useWishlistAction() {
       window.alert(error.message);
     }
   };
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[character];
+  });
+}
+
+function downloadReceipt(order, currencyCode) {
+  const money = (value) =>
+    escapeHtml(formatMoney(value, currencyCode));
+  const items = (order.order_items || [])
+    .map(
+      (item) => `
+        <tr>
+          <td>${escapeHtml(item.product_name)} × ${escapeHtml(item.quantity)}</td>
+          <td>${money(item.subtotal)}</td>
+        </tr>`,
+    )
+    .join("");
+  const reference = order.payment_reference
+    ? `<p><b>Payment reference:</b> ${escapeHtml(order.payment_reference)}</p>`
+    : "";
+  const date = escapeHtml(new Date(order.created_at).toLocaleString());
+  const document = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Receipt ${escapeHtml(order.order_number)} · AB Beauty Conner</title>
+  <style>
+    body{font:15px Arial,sans-serif;color:#28232a;max-width:720px;margin:40px auto;padding:0 20px}
+    h1{font-size:26px;margin-bottom:4px}h2{font-size:17px;margin-top:32px}
+    .muted{color:#746e76}table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{text-align:left;padding:12px 8px;border-bottom:1px solid #e8e4e9}
+    th:last-child,td:last-child{text-align:right}.totals{margin:20px 0 0 auto;width:min(100%,320px)}
+    .totals p{display:flex;justify-content:space-between}.total{font-size:18px;font-weight:bold}
+  </style>
+</head>
+<body>
+  <h1>AB Beauty Conner</h1>
+  <p class="muted">Payment receipt</p>
+  <p><b>Order:</b> ${escapeHtml(order.order_number)}<br><b>Date:</b> ${date}<br><b>Payment status:</b> Paid</p>
+  ${reference}
+  <h2>Customer and delivery</h2>
+  <p>${escapeHtml(order.shipping_full_name)}<br>${escapeHtml(order.shipping_address)}<br>${escapeHtml(order.shipping_city)}, ${escapeHtml(order.shipping_region)}<br>${escapeHtml(order.shipping_phone)}</p>
+  <h2>Order items</h2>
+  <table><thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody>${items}</tbody></table>
+  <div class="totals">
+    <p><span>Subtotal</span><b>${money(order.subtotal)}</b></p>
+    <p><span>Delivery</span><b>${money(order.delivery_fee)}</b></p>
+    <p class="total"><span>Total paid</span><b>${money(order.total_amount)}</b></p>
+  </div>
+  <p class="muted">Thank you for shopping with AB Beauty Conner.</p>
+</body>
+</html>`;
+  const url = URL.createObjectURL(
+    new Blob([document], { type: "text/html;charset=utf-8" }),
+  );
+  const link = window.document.createElement("a");
+  link.href = url;
+  link.download = `AB-Beauty-Conner-${order.order_number}-receipt.html`;
+  window.document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function useStoreData(load) {
@@ -1590,6 +1666,14 @@ export function OrdersPage() {
                     </b>
                   </div>
                 ))}
+                {order.payment_status === "paid" && (
+                  <Link
+                    className="button button-outline receipt-history-link"
+                    to={`/account/orders/${order.id}/receipt`}
+                  >
+                    View / download receipt <ArrowRight size={15} />
+                  </Link>
+                )}
               </div>
             </details>
           ))}
@@ -1600,6 +1684,169 @@ export function OrdersPage() {
           detail="Your order history will appear here after checkout."
           action="Explore the collection"
         />
+      )}
+    </section>
+  );
+}
+
+export function ReceiptPage() {
+  const { orderId } = useParams();
+  const { user, storeSettings } = useAuth();
+  const [state, setState] = useState({
+    loading: true,
+    error: "",
+    order: null,
+  });
+
+  useEffect(() => {
+    let active = true;
+    getOrder(user.id, orderId)
+      .then((order) => {
+        if (active) setState({ loading: false, error: "", order });
+      })
+      .catch((reason) => {
+        if (active)
+          setState({
+            loading: false,
+            error: reason.message || "Unable to load this receipt.",
+            order: null,
+          });
+      });
+    return () => {
+      active = false;
+    };
+  }, [orderId, user.id]);
+
+  const order = state.order;
+  const paid = order?.payment_status === "paid";
+  return (
+    <section className="shell page-space receipt-page">
+      {state.loading ? (
+        <LoadingBlock rows={3} />
+      ) : state.error ? (
+        <div className="receipt-state">
+          <Notice message={state.error} kind="error" />
+          <Link className="button button-outline" to="/account/orders">
+            Back to my orders
+          </Link>
+        </div>
+      ) : !paid ? (
+        <div className="receipt-state">
+          <span className="eyebrow">PAYMENT RECEIPT</span>
+          <h1>Payment not confirmed</h1>
+          <p>A receipt is available after payment has been verified.</p>
+          <Link className="button button-outline" to="/account/orders">
+            Back to my orders
+          </Link>
+        </div>
+      ) : (
+        <>
+          <div className="receipt-actions no-print">
+            <Link className="text-link" to="/account/orders">
+              <ArrowLeft size={15} /> Back to my orders
+            </Link>
+            <div>
+              <button
+                className="button button-outline"
+                onClick={() =>
+                  downloadReceipt(order, storeSettings?.currency_code)
+                }
+              >
+                <Download size={16} /> Download receipt
+              </button>
+              <button
+                className="button button-dark"
+                onClick={() => window.print()}
+              >
+                <Printer size={16} /> Print / Save as PDF
+              </button>
+            </div>
+          </div>
+          <article className="receipt-document">
+            <header className="receipt-heading">
+              <div>
+                <span className="eyebrow">AB BEAUTY CONNER</span>
+                <h1>Payment receipt</h1>
+              </div>
+              <span className="receipt-paid">PAID</span>
+            </header>
+            <div className="receipt-meta">
+              <p>
+                <span>Order number</span>
+                <b>{order.order_number}</b>
+              </p>
+              <p>
+                <span>Payment date</span>
+                <b>{new Date(order.created_at).toLocaleString()}</b>
+              </p>
+              {order.payment_reference && (
+                <p>
+                  <span>Payment reference</span>
+                  <b>{order.payment_reference}</b>
+                </p>
+              )}
+            </div>
+            <section className="receipt-customer">
+              <h2>Customer and delivery</h2>
+              <p>
+                <b>{order.shipping_full_name}</b>
+                <br />
+                {order.shipping_address}
+                <br />
+                {order.shipping_city}, {order.shipping_region}
+                <br />
+                {order.shipping_phone}
+              </p>
+            </section>
+            <section>
+              <h2>Order items</h2>
+              <div className="receipt-item-list">
+                {(order.order_items || []).map((item) => (
+                  <div className="receipt-item" key={item.id}>
+                    <span>
+                      {item.product_name} × {item.quantity}
+                    </span>
+                    <b>
+                      {formatMoney(
+                        item.subtotal,
+                        storeSettings?.currency_code,
+                      )}
+                    </b>
+                  </div>
+                ))}
+              </div>
+            </section>
+            <div className="receipt-totals">
+              <p>
+                <span>Subtotal</span>
+                <b>
+                  {formatMoney(order.subtotal, storeSettings?.currency_code)}
+                </b>
+              </p>
+              <p>
+                <span>Delivery fee</span>
+                <b>
+                  {formatMoney(
+                    order.delivery_fee,
+                    storeSettings?.currency_code,
+                  )}
+                </b>
+              </p>
+              <p className="receipt-total">
+                <span>Total paid</span>
+                <b>
+                  {formatMoney(
+                    order.total_amount,
+                    storeSettings?.currency_code,
+                  )}
+                </b>
+              </p>
+            </div>
+            <p className="receipt-thanks">
+              Thank you for shopping with AB Beauty Conner.
+            </p>
+          </article>
+        </>
       )}
     </section>
   );
@@ -2034,6 +2281,22 @@ export function CartPage() {
   );
 }
 
+const deliveryOptions = [
+  { location: "Accra", fee: 40 },
+  { location: "Tema (1–25)", fee: 50 },
+  { location: "Kumasi", fee: 50 },
+  { location: "Sunyani", fee: 60 },
+  { location: "Tamale", fee: 70 },
+];
+
+function formatDeliveryFee(value, currency = "GHS") {
+  return new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export function CheckoutPage() {
   const { user, profile } = useAuth();
   const [cartItems, setCartItems] = useState([]);
@@ -2061,7 +2324,11 @@ export function CheckoutPage() {
             full_name: saved[0].full_name,
             phone: saved[0].phone,
             address: saved[0].address,
-            city: saved[0].city,
+            city: deliveryOptions.some(
+              (option) => option.location === saved[0].city,
+            )
+              ? saved[0].city
+              : "",
             region: saved[0].region,
             country: saved[0].country,
           });
@@ -2082,10 +2349,16 @@ export function CheckoutPage() {
         item.quantity
     );
   }, 0);
-  const deliveryFee = Number(settings?.delivery_fee || 0);
+  const deliveryFee =
+    deliveryOptions.find((option) => option.location === form.city)?.fee ?? 0;
   async function submit(event) {
     event.preventDefault();
     if (!cartItems.length) return setError("Your cart is empty.");
+    if (!deliveryOptions.some((option) => option.location === form.city)) {
+      return setError(
+        "Choose a delivery location to calculate the delivery fee.",
+      );
+    }
     setBusy(true);
     setError("");
     try {
@@ -2138,7 +2411,11 @@ export function CheckoutPage() {
                           full_name: address.full_name,
                           phone: address.phone,
                           address: address.address,
-                          city: address.city,
+                          city: deliveryOptions.some(
+                            (option) => option.location === address.city,
+                          )
+                            ? address.city
+                            : "",
                           region: address.region,
                           country: address.country,
                         });
@@ -2155,12 +2432,11 @@ export function CheckoutPage() {
               )}
               <div className="form-grid">
                 {[
-                  ["full_name", "Full name"],
-                  ["phone", "Phone number"],
-                  ["address", "Street address"],
-                  ["city", "City"],
-                  ["region", "Region"],
-                  ["country", "Country"],
+                ["full_name", "Full name"],
+                ["phone", "Phone number"],
+                ["address", "Street address"],
+                ["region", "Region"],
+                ["country", "Country"],
                 ].map(([key, label]) => (
                   <label key={key}>
                     {label}
@@ -2173,6 +2449,24 @@ export function CheckoutPage() {
                     />
                   </label>
                 ))}
+                <label>
+                  Delivery location
+                  <select
+                    required
+                    value={form.city}
+                    onChange={(event) =>
+                      setForm({ ...form, city: event.target.value })
+                    }
+                  >
+                    <option value="">Choose a delivery location</option>
+                    {deliveryOptions.map((option) => (
+                      <option key={option.location} value={option.location}>
+                        {option.location} —{" "}
+                        {formatDeliveryFee(option.fee, settings?.currency_code)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
             </div>
             <div className="panel payment-panel">
@@ -2242,13 +2536,26 @@ export function CheckoutPage() {
               <b>{formatMoney(subtotal, settings?.currency_code)}</b>
             </div>
             <div className="checkout-total-line">
-              <span>Delivery fee</span>
-              <b>{formatMoney(deliveryFee, settings?.currency_code)}</b>
+              <span>
+                Delivery fee
+                {form.city && (
+                  <small className="delivery-location-summary">
+                    {form.city}
+                  </small>
+                )}
+              </span>
+              <b>
+                {form.city
+                  ? formatDeliveryFee(deliveryFee, settings?.currency_code)
+                  : "Select location"}
+              </b>
             </div>
             <div className="checkout-total-line total">
               <span>Total</span>
               <b>
-                {formatMoney(subtotal + deliveryFee, settings?.currency_code)}
+                {form.city
+                  ? formatMoney(subtotal + deliveryFee, settings?.currency_code)
+                  : "Select location"}
               </b>
             </div>
             <button
@@ -2258,6 +2565,13 @@ export function CheckoutPage() {
               {busy ? "Connecting to Paystack…" : "Continue to Paystack"}
               <ArrowRight size={17} />
             </button>
+            <p className="checkout-policy-links">
+              By continuing, you agree to our{" "}
+              <Link to="/policies/terms">Terms</Link> and{" "}
+              <Link to="/policies/privacy">Privacy Policy</Link>. See our{" "}
+              <Link to="/policies/shipping-delivery">Delivery</Link> and{" "}
+              <Link to="/policies/refund-returns">Returns</Link> policies.
+            </p>
           </aside>
         </form>
       )}
@@ -2310,9 +2624,19 @@ export function PaymentReturnPage() {
           <>
             <h1>Payment received</h1>
             <p>Your order {state.order.order_number} is confirmed.</p>
-            <Link className="button button-dark" to="/account/orders">
-              View your orders <ArrowRight size={16} />
-            </Link>
+            <div className="payment-confirmed-actions">
+              {state.order.id && (
+                <Link
+                  className="button button-dark"
+                  to={`/account/orders/${state.order.id}/receipt`}
+                >
+                  View receipt <ArrowRight size={16} />
+                </Link>
+              )}
+              <Link className="button button-outline" to="/account/orders">
+                View your orders <ArrowRight size={16} />
+              </Link>
+            </div>
           </>
         ) : (
           <>

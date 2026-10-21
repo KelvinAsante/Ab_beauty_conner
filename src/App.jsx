@@ -75,6 +75,11 @@ const OrdersPage = lazy(() =>
     default: module.OrdersPage,
   })),
 );
+const ReceiptPage = lazy(() =>
+  import("./pages/StorePages.jsx").then((module) => ({
+    default: module.ReceiptPage,
+  })),
+);
 const AddressesPage = lazy(() =>
   import("./pages/StorePages.jsx").then((module) => ({
     default: module.AddressesPage,
@@ -84,6 +89,22 @@ const WishlistPage = lazy(() =>
   import("./pages/StorePages.jsx").then((module) => ({
     default: module.WishlistPage,
   })),
+);
+const InfoPages = () => import("./pages/InfoPages.jsx");
+const AboutPage = lazy(() =>
+  InfoPages().then((module) => ({ default: module.AboutPage })),
+);
+const ContactPage = lazy(() =>
+  InfoPages().then((module) => ({ default: module.ContactPage })),
+);
+const FaqPage = lazy(() =>
+  InfoPages().then((module) => ({ default: module.FaqPage })),
+);
+const CustomerReviewsPage = lazy(() =>
+  InfoPages().then((module) => ({ default: module.CustomerReviewsPage })),
+);
+const PolicyPage = lazy(() =>
+  InfoPages().then((module) => ({ default: module.PolicyPage })),
 );
 const AdminPages = () => import("./pages/AdminPages.jsx");
 const AdminDashboard = lazy(() =>
@@ -156,6 +177,11 @@ function AppRoutes() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/category/:slug" element={<ShopPage />} />
           <Route path="/product/:slug" element={<ProductPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/faq" element={<FaqPage />} />
+          <Route path="/reviews" element={<CustomerReviewsPage />} />
+          <Route path="/policies/:slug" element={<PolicyPage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -167,6 +193,10 @@ function AppRoutes() {
             <Route path="/payment/return" element={<PaymentReturnPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/account/orders" element={<OrdersPage />} />
+            <Route
+              path="/account/orders/:orderId/receipt"
+              element={<ReceiptPage />}
+            />
             <Route path="/account/addresses" element={<AddressesPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

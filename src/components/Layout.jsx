@@ -83,18 +83,24 @@ export function StoreHeader() {
           <NavLink onClick={() => setMenuOpen(false)} to="/">
             Home
           </NavLink>
+          <NavLink onClick={() => setMenuOpen(false)} to="/about">
+            About
+          </NavLink>
           <NavLink onClick={() => setMenuOpen(false)} to="/shop">
             Shop
           </NavLink>
-          <a href="/#categories" onClick={() => setMenuOpen(false)}>
-            Categories
-          </a>
           <NavLink onClick={() => setMenuOpen(false)} to="/shop?sort=newest">
             New arrivals
           </NavLink>
-          <a href="/#contact" onClick={() => setMenuOpen(false)}>
+          <NavLink onClick={() => setMenuOpen(false)} to="/reviews">
+            Reviews
+          </NavLink>
+          <NavLink onClick={() => setMenuOpen(false)} to="/faq">
+            FAQs
+          </NavLink>
+          <NavLink onClick={() => setMenuOpen(false)} to="/contact">
             Contact
-          </a>
+          </NavLink>
         </nav>
         <div className="header-actions">
           <div className="profile-menu-wrap">
@@ -284,6 +290,9 @@ export function StoreFooter() {
         <div>
           <h3>Explore</h3>
           <Link to="/shop">Shop all</Link>
+          <Link to="/about">About us</Link>
+          <Link to="/reviews">Customer reviews</Link>
+          <Link to="/faq">FAQs</Link>
           <Link to="/account/wishlist">Wishlist</Link>
           <Link to="/account/orders">Order history</Link>
         </div>
@@ -291,9 +300,16 @@ export function StoreFooter() {
           <h3>Customer care</h3>
           <Link to="/account">My account</Link>
           <Link to="/cart">Shopping bag</Link>
-          <a href="https://wa.me/233547767018" target="_blank" rel="noreferrer">
-            Contact support
-          </a>
+          <Link to="/contact">Contact us</Link>
+          <Link to="/faq">Help and FAQs</Link>
+        </div>
+        <div>
+          <h3>Policies</h3>
+          <Link to="/policies/terms">Terms and conditions</Link>
+          <Link to="/policies/privacy">Privacy policy</Link>
+          <Link to="/policies/refund-returns">Refunds and returns</Link>
+          <Link to="/policies/shipping-delivery">Shipping and delivery</Link>
+          <Link to="/policies/order-cancellation">Order cancellation</Link>
         </div>
         <div>
           <h3>Stay in touch</h3>
@@ -333,7 +349,7 @@ export function StoreFooter() {
       </div>
       <div className="shell footer-bottom">
         <span>© {new Date().getFullYear()} AB Beauty Conner</span>
-        <span>Secure checkout · Customer-first service</span>
+        <span>Online retail · Secure Paystack checkout</span>
       </div>
     </footer>
   );
