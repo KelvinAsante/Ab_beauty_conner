@@ -22,8 +22,11 @@ import {
 
 const supportPhone = "+233547767018";
 const supportDisplay = "054 776 7018";
+const alternateSupportPhone = "+233592720844";
+const alternateSupportDisplay = "059 272 0844";
 const supportEmail = "kelvinasante920@gmail.com";
-const shopAddress = "Ashaley Botwe School Junction, Accra, Ghana";
+const shopAddress =
+  "Ashaley Botwe, School Junction, Malejor Curve, Accra, Ghana";
 const mapSearch = encodeURIComponent(shopAddress);
 const supportWhatsApp = `https://wa.me/${supportPhone.slice(1)}`;
 
@@ -283,6 +286,19 @@ export function ContactPage() {
         </a>
         <a
           className="contact-method-card"
+          href={`tel:${alternateSupportPhone}`}
+        >
+          <span className="public-info-icon">
+            <Phone />
+          </span>
+          <span>
+            <b>Call us</b>
+            <small>{alternateSupportDisplay}</small>
+          </span>
+          <ArrowRight size={17} />
+        </a>
+        <a
+          className="contact-method-card"
           href={supportWhatsApp}
           target="_blank"
           rel="noreferrer"
@@ -395,17 +411,17 @@ const faqItems = [
   {
     question: "How long does delivery take?",
     answer:
-      "The current estimate is 2–5 business days after order acceptance. Actual timing depends on the delivery address and courier arrangements. Contact us if an order is delayed.",
+      "Estimated delivery is 2–5 working days, depending on the destination and order confirmation. Delivery may take longer due to location, courier availability, weather, or other unforeseen circumstances. Contact us if your order is delayed.",
   },
   {
     question: "Where do you deliver, and what are the delivery charges?",
     answer:
-      "Checkout currently offers Accra (GH₵40), Tema (1–25) (GH₵50), Kumasi (GH₵50), Sunyani (GH₵60), and Tamale (GH₵70). Choose your delivery location at checkout to see the fee included in your total.",
+      "We deliver across Ghana. Fees are Accra GH₵40, Tema Communities 1–25 GH₵50, Kumasi GH₵50, Sunyani GH₵60, and Tamale GH₵70. For other destinations, contact us to confirm the applicable fee before the order is finalized.",
   },
   {
     question: "Can I return a damaged or incorrect product?",
     answer:
-      "Contact support as soon as you notice a problem, include your order number and clear photos, and wait for return instructions before sending an item back. Returns are handled as exchanges, not refunds. Review the Refund and Return Policy for item-condition requirements.",
+      "Contact us before returning a product. Returns should be unused and undamaged, in original packaging and condition, with accessories and tags where applicable. Damaged, defective, or incorrectly supplied items are assessed under the policy and applicable consumer protections.",
   },
   {
     question: "How can I tell whether an item is in stock?",
@@ -415,11 +431,11 @@ const faqItems = [
   {
     question: "How do I cancel an order?",
     answer:
-      "Contact support promptly with your order number. Cancellation depends on whether the order has already been prepared or handed to a delivery provider. See the Order Cancellation Policy.",
+      "Contact us as soon as possible with your order number. Cancellation may be accepted before dispatch; once dispatched, cancellation may no longer be possible. See the Order Cancellation Policy.",
   },
   {
     question: "How can I contact customer support?",
-    answer: `Call or message AB Beauty Conner on WhatsApp at ${supportDisplay}. The Contact Us page shows the available contact channels.`,
+    answer: `Call us on ${supportDisplay} or ${alternateSupportDisplay}, or message us on WhatsApp at ${supportDisplay}. The Contact Us page shows all contact options.`,
   },
 ];
 
@@ -562,10 +578,12 @@ export function PolicyPage() {
             <p>
               Prices are displayed in Ghana cedis (GHS). Product images and
               descriptions are provided to identify the item; minor display
-              differences may occur. Product availability reflects recorded
-              inventory and is rechecked before order completion. If an item
-              becomes unavailable, support will contact you about the order and
-              any payment made.
+              differences may occur. AB Beauty Conner is a physical retail
+              store, and products advertised online are physically stocked at
+              the store; the business does not operate a dropshipping model.
+              Product availability is rechecked before order completion. If an
+              item becomes unavailable, support will contact you about the
+              order and any payment made.
             </p>
           ),
         },
@@ -585,20 +603,23 @@ export function PolicyPage() {
           content: (
             <>
               <p>
-                Delivery is estimated at 2–5 business days after order
-                acceptance. Current delivery locations and fees are:
+                AB Beauty Conner delivers across Ghana. Estimated delivery is
+                2–5 working days, depending on destination and order
+                confirmation. Current fees for selected locations are:
               </p>
               <ul>
                 <li>Accra — GH₵40</li>
-                <li>Tema (1–25) — GH₵50</li>
+                <li>Tema (Communities 1–25) — GH₵50</li>
                 <li>Kumasi — GH₵50</li>
                 <li>Sunyani — GH₵60</li>
                 <li>Tamale — GH₵70</li>
               </ul>
               <p>
-                Checkout shows the selected location’s delivery fee and
-                includes it in the payable total. Contact support before
-                payment if your location is not listed.
+                For other destinations within Ghana, contact the store to
+                confirm the delivery fee before the order is finalized.
+                Delivery times may vary due to location, courier availability,
+                weather, or other unforeseen circumstances. The applicable fee
+                for a listed location is shown in checkout before payment.
               </p>
             </>
           ),
@@ -685,32 +706,46 @@ export function PolicyPage() {
     "refund-returns": {
       title: "Refund and Return Policy",
       intro:
-        "AB Beauty Conner does not offer refunds. Approved returns are handled as exchanges, subject to the conditions below.",
+        "Return and refund requests are reviewed according to the circumstances of the order, this policy, and applicable consumer protection requirements.",
       ownerNote:
-        "Confirm the return request window, who pays return delivery, and how exchanges are arranged for damaged or incorrect products before treating this policy as final.",
+        "The business has not specified a standard return request window or who pays return delivery. Contact support to confirm these details before sending an item back.",
       sections: [
         {
-          title: "Return condition",
+          title: "Return eligibility and condition",
           content: (
             <p>
-              Returned items must be in their original packaging and original
-              state. If the style has been altered or the lace has been cut, a
-              10% depreciation rate will apply if the store accepts the return.
-              Acceptance of an item in that altered condition is at the store’s
-              discretion and is not guaranteed.
+              For a standard return, the product must be unused and undamaged,
+              in its original packaging and original condition, with all
+              accessories and tags where applicable. Contact the store before
+              returning any product so support can explain the return process.
+              Reported damaged, defective, or incorrectly supplied products
+              are assessed separately as described below.
             </p>
           ),
         },
         {
-          title: "Exchanges and reported issues",
+          title: "Damaged, defective, or incorrect products",
           content: (
             <p>
-              Refunds are not offered; approved returns are exchanged. If an
-              item arrives damaged or differs from your order, contact support
-              promptly with your order number, a description, and clear photos
-              where relevant. Keep the item and packaging, and wait for support
-              to review the request and provide instructions before sending it
-              back.
+              Products reported as damaged, defective, incorrectly supplied,
+              or otherwise covered by applicable consumer protection
+              requirements will be assessed appropriately. Contact support with
+              your order number, a description, and clear photos where relevant.
+              Nothing in this policy removes rights available under applicable
+              law.
+            </p>
+          ),
+        },
+        {
+          title: "Refund decisions and delivery fees",
+          content: (
+            <p>
+              Refund requests are reviewed based on the circumstances of the
+              order and the applicable return policy. If a refund is approved,
+              support will explain the process and expected timeframe. Refunds
+              for online payments are processed through the appropriate payment
+              channel. Delivery fees are assessed according to the circumstances
+              of the return and applicable consumer protection requirements.
             </p>
           ),
         },
@@ -725,17 +760,17 @@ export function PolicyPage() {
     "shipping-delivery": {
       title: "Shipping and Delivery Policy",
       intro:
-        "Delivery details and the applicable configured charge are displayed during checkout.",
-      ownerNote:
-        "The estimated 2–5 business-day delivery period is supplied by the business. Confirm when the estimate starts and the courier arrangements before submission.",
+        "AB Beauty Conner is a physical retail store in Accra. Products advertised online are stocked at our store; we do not operate a dropshipping business.",
       sections: [
         {
           title: "Estimated delivery time",
           content: (
             <p>
-              The current estimated delivery time is 2–5 business days after the
-              order is accepted. This is an estimate, not a guaranteed delivery
-              date. Business days exclude weekends and public holidays.
+              We deliver to customers across Ghana, including Accra, Kumasi,
+              Sunyani, Tamale, and other regions. Estimated delivery is 2–5
+              working days, depending on destination and order confirmation.
+              Delivery times may vary due to location, courier availability,
+              weather, or other unforeseen circumstances.
             </p>
           ),
         },
@@ -744,19 +779,19 @@ export function PolicyPage() {
           content: (
             <>
               <p>
-                Choose one of the listed delivery locations at checkout. Its
-                fee is shown in the order summary and included in the amount
-                payable before you continue to Paystack.
+                Delivery charges for selected locations are:
               </p>
               <ul>
                 <li>Accra — GH₵40</li>
-                <li>Tema (1–25) — GH₵50</li>
+                <li>Tema (Communities 1–25) — GH₵50</li>
                 <li>Kumasi — GH₵50</li>
                 <li>Sunyani — GH₵60</li>
                 <li>Tamale — GH₵70</li>
               </ul>
               <p>
-                Contact support before paying if your location is not listed.
+                For other destinations within Ghana, contact the store to
+                confirm the applicable fee before the order is finalized. The
+                fee for a listed location is shown in checkout before payment.
               </p>
             </>
           ),
@@ -768,8 +803,16 @@ export function PolicyPage() {
               If delivery has not arrived within the estimate, contact support
               with your order number and phone number. The store will check the
               order and available delivery information and advise you of the
-              next step. Please make sure someone can be reached at the delivery
-              phone number supplied.
+              next step.
+            </p>
+          ),
+        },
+        {
+          title: "Business location",
+          content: (
+            <p>
+              AB Beauty Conner is located at {shopAddress}. {support} about
+              delivery to your area.
             </p>
           ),
         },
@@ -779,17 +822,15 @@ export function PolicyPage() {
       title: "Order Cancellation Policy",
       intro:
         "Contact support as quickly as possible if you need to cancel an order.",
-      ownerNote:
-        "Confirm the operational point at which an order can no longer be cancelled and how to identify dispatched orders.",
       sections: [
         {
           title: "Requesting cancellation",
           content: (
             <p>
               Send your order number and cancellation request to support. The
-              store will check whether the order has already been prepared or
-              handed to a delivery provider. Cancellation cannot be confirmed
-              until the store responds.
+              store will confirm whether the order has been dispatched.
+              Cancellation may be accepted before dispatch, and is not
+              confirmed until support responds.
             </p>
           ),
         },
@@ -797,19 +838,20 @@ export function PolicyPage() {
           title: "After dispatch",
           content: (
             <p>
-              If an order has already been dispatched, contact support for
-              instructions. The request may need to be handled under the Refund
-              and Return Policy rather than as a cancellation.
+              Once an order has been dispatched, cancellation may no longer be
+              possible. Contact support for instructions; the request may need
+              to be handled under the Refund and Return Policy instead.
             </p>
           ),
         },
         {
-          title: "Payment and exchanges",
+          title: "Payment and eligible refunds",
           content: (
             <p>
-              AB Beauty Conner does not offer refunds. If a paid order
-              cancellation is approved, contact support to confirm the exchange
-              arrangement for that order.
+              If payment has already been made for an eligible cancelled order,
+              support will inform you of the applicable refund arrangements.
+              Refund requests are assessed according to the circumstances of
+              the order and applicable consumer protection requirements.
             </p>
           ),
         },

@@ -316,6 +316,9 @@ export function StoreFooter() {
           <a className="footer-contact-link" href="tel:+233547767018">
             <Phone size={15} /> 054 776 7018 · Call
           </a>
+          <a className="footer-contact-link" href="tel:+233592720844">
+            <Phone size={15} /> 059 272 0844 · Call
+          </a>
           <a
             className="footer-contact-link"
             href="https://wa.me/233547767018"
@@ -349,7 +352,7 @@ export function StoreFooter() {
       </div>
       <div className="shell footer-bottom">
         <span>© {new Date().getFullYear()} AB Beauty Conner</span>
-        <span>Online retail · Secure Paystack checkout</span>
+        <span>In-store &amp; online · Secure Paystack checkout</span>
       </div>
     </footer>
   );
