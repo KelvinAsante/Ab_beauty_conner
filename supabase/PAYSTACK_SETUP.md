@@ -29,6 +29,23 @@ npx supabase functions deploy paystack-webhook
 
 The webhook function disables JWT verification in `supabase/config.toml`; it authenticates Paystack requests using the HMAC signature header instead.
 
+## Product Q&A assistant
+
+The product page assistant uses OpenRouter through a Supabase Edge Function. Keep the OpenRouter API key in Supabase Function secrets; never add it to the frontend `.env` file or commit it to the repository.
+
+Add these secrets in Supabase Dashboard → Edge Functions → Secrets:
+
+- `OPENROUTER_KEY`: OpenRouter API key
+- `OPENROUTER_MODEL` (optional): OpenRouter model identifier; defaults to `openai/gpt-4o-mini`
+
+Deploy the function:
+
+```powershell
+npx supabase functions deploy product-assistant
+```
+
+The function reads active product details from the database and only sends those details and the recent conversation to the AI provider. Product information may be incomplete, so the assistant is instructed to say when a detail is not listed.
+
 ## Configure the webhook
 
 In the Paystack Dashboard, configure the webhook URL:

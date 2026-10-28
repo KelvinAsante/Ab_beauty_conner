@@ -77,6 +77,7 @@ import {
   ProductCard,
   SectionHeading,
 } from "../components/Common.jsx";
+import { ProductAssistant } from "../components/ProductAssistant.jsx";
 import { formatMoney } from "../utils/money.js";
 
 function useWishlistAction() {
@@ -935,6 +936,7 @@ export function ProductPage() {
           </div>
         </div>
       </section>
+      <ProductAssistant key={product.id} product={product} />
       <section className="shell review-section">
         <div className="review-heading">
           <div>

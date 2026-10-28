@@ -2040,6 +2040,128 @@ a.contact-method-card:hover {
   color: #77707b;
   font-size: 11px;
 }
+.product-assistant {
+  margin-block: 36px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbf9fc;
+}
+.assistant-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.assistant-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--lavender);
+  color: var(--purple-dark);
+}
+.assistant-heading h2 {
+  margin: 5px 0 0;
+  font-size: 24px;
+}
+.assistant-intro {
+  margin: 14px 0;
+  color: #716a75;
+  font-size: 12px;
+}
+.assistant-messages {
+  display: grid;
+  gap: 10px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 15px;
+  border: 1px solid #eee9f0;
+  border-radius: 4px;
+  background: #fff;
+}
+.assistant-welcome,
+.assistant-message {
+  width: fit-content;
+  max-width: min(85%, 620px);
+  padding: 10px 13px;
+  border-radius: 12px;
+  color: #514b56;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.assistant-welcome,
+.assistant-message-assistant {
+  background: #f3eff7;
+}
+.assistant-message-user {
+  justify-self: end;
+  background: var(--purple-dark);
+  color: #fff;
+}
+.assistant-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.assistant-suggestions button {
+  padding: 7px 10px;
+  border: 1px solid #ded5e7;
+  border-radius: 20px;
+  background: #fff;
+  color: var(--purple-dark);
+  font-size: 11px;
+}
+.assistant-suggestions button:hover {
+  border-color: var(--purple);
+}
+.assistant-form {
+  display: flex;
+  gap: 9px;
+  margin-top: 12px;
+}
+.assistant-form input {
+  min-width: 0;
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #e4dfe7;
+  border-radius: 4px;
+  outline: none;
+  background: #fff;
+  font-size: 12px;
+}
+.assistant-form input:focus {
+  border-color: #9c7eb7;
+  box-shadow: 0 0 0 3px rgba(118, 86, 158, 0.1);
+}
+.assistant-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.assistant-error {
+  margin: 10px 0 0;
+  color: #a34f58;
+  font-size: 12px;
+}
+.assistant-disclaimer {
+  display: block;
+  margin-top: 10px;
+  color: #8f8793;
+  font-size: 10px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
 .review-section {
   padding-block: 35px 15px;
   border-top: 1px solid var(--line);
@@ -4291,6 +4413,26 @@ a.contact-method-card:hover {
     grid-template-columns: 1fr;
     gap: 14px;
   }
+  .product-assistant {
+    padding: 18px;
+  }
+  .assistant-messages {
+    max-height: min(45vh, 300px);
+    padding: 12px;
+  }
+  .assistant-welcome,
+  .assistant-message {
+    max-width: 100%;
+  }
+  .assistant-form .button {
+    min-height: 44px;
+    padding-inline: 12px;
+    white-space: nowrap;
+  }
+  .assistant-form input {
+    min-height: 44px;
+    font-size: 16px;
+  }
   .gallery-main {
     height: min(115vw, 480px);
   }
@@ -4584,6 +4726,32 @@ a.contact-method-card:hover {
 @media (max-width: 390px) {
   .shell {
     width: calc(100% - 24px);
+  }
+  .product-assistant {
+    margin-block: 24px;
+    padding: 14px;
+  }
+  .assistant-heading {
+    align-items: flex-start;
+    gap: 9px;
+  }
+  .assistant-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .assistant-heading h2 {
+    font-size: 20px;
+    overflow-wrap: anywhere;
+  }
+  .assistant-suggestions {
+    gap: 6px;
+  }
+  .assistant-suggestions button {
+    min-height: 38px;
+    text-align: left;
+  }
+  .assistant-disclaimer {
+    line-height: 1.5;
   }
   .brand {
     font-size: 11px;
