@@ -201,21 +201,21 @@ const categoryArt = [
   { match: /watch/, image: "photo-1523275335684-37898b6baf30" },
   { match: /accessor/, image: "photo-1611652022419-a9419f74343d" },
 ];
-function CategoryTile({ category, productCount }) {
+function getCategoryImage(category, width = 1200) {
   const art =
     categoryArt.find((item) => item.match.test(category.name)) ||
     categoryArt[category.name.length % categoryArt.length];
   return (
+    category.image_url ||
+    `https://images.unsplash.com/${art.image}?auto=format&fit=crop&w=${width}&q=85`
+  );
+}
+
+function CategoryTile({ category, productCount }) {
+  return (
     <Link className="category-tile" to={`/category/${category.slug}`}>
       <span className="category-tile-image">
-        <img
-          src={
-            category.image_url ||
-            `https://images.unsplash.com/${art.image}?auto=format&fit=crop&w=480&q=80`
-          }
-          alt=""
-          loading="lazy"
-        />
+        <img src={getCategoryImage(category, 480)} alt="" loading="lazy" />
       </span>
       <span className="category-tile-copy">
         <b>{category.name}</b>
@@ -249,6 +249,40 @@ function ProductShelf({ title, eyebrow, products, to, compact }) {
   );
 }
 
+const fallbackHeroSlides = [
+  {
+    kicker: "NEW COLLECTION",
+    title: "Let your beauty",
+    accent: "speak",
+    description: "Beauty and style picks for the way you want to show up.",
+    image: "/images/hero_wig.jpeg",
+    alt: "Display of wigs on mannequin stands",
+    to: "/shop",
+    action: "Shop Now",
+  },
+  {
+    kicker: "BEAUTY & SKIN",
+    title: "Make room for",
+    accent: "your glow",
+    description:
+      "Explore the little luxuries that make every day feel special.",
+    image: `https://images.unsplash.com/${categoryArt[1].image}?auto=format&fit=crop&w=1200&q=85`,
+    alt: "Beauty and skincare collection",
+    to: "/shop",
+    action: "Explore beauty",
+  },
+  {
+    kicker: "STYLE THAT FEELS LIKE YOU",
+    title: "Find your",
+    accent: "signature style",
+    description: "Discover something lovely for your next favorite look.",
+    image: `https://images.unsplash.com/${categoryArt[2].image}?auto=format&fit=crop&w=1200&q=85`,
+    alt: "Fashion collection",
+    to: "/shop",
+    action: "Explore the shop",
+  },
+];
+
 export function HomePage() {
   const [data, setData] = useState({
     products: [],
@@ -257,6 +291,8 @@ export function HomePage() {
     loading: true,
     error: "",
   });
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+  const [heroPaused, setHeroPaused] = useState(false);
   useEffect(() => {
     let alive = true;
     Promise.all([
@@ -288,6 +324,42 @@ export function HomePage() {
       alive = false;
     };
   }, []);
+  const heroSlides = useMemo(() => {
+    const categorySlides = data.categories
+      .slice(0, 4)
+      .map((category) => ({
+        kicker: `SHOP ${category.name.toUpperCase()}`,
+        title: "Find your",
+        accent: category.name,
+        description: `Explore our curated ${category.name.toLowerCase()} collection, selected with care.`,
+        image: getCategoryImage(category),
+        alt: `${category.name} collection`,
+        to: `/category/${category.slug}`,
+        action: `Shop ${category.name}`,
+      }));
+    return categorySlides.length >= 3
+      ? categorySlides
+      : [...categorySlides, ...fallbackHeroSlides].slice(0, 3);
+  }, [data.categories]);
+  const activeHero = heroSlides[activeHeroIndex % heroSlides.length];
+  useEffect(() => {
+    if (
+      heroPaused ||
+      heroSlides.length < 2 ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return undefined;
+    const timer = window.setTimeout(
+      () => setActiveHeroIndex((index) => (index + 1) % heroSlides.length),
+      5500,
+    );
+    return () => window.clearTimeout(timer);
+  }, [activeHeroIndex, heroPaused, heroSlides.length]);
+  function moveHero(direction) {
+    setActiveHeroIndex(
+      (index) => (index + direction + heroSlides.length) % heroSlides.length,
+    );
+  }
   const products = data.products;
   const deals = products.filter(
     (product) =>
@@ -303,20 +375,28 @@ export function HomePage() {
   const wish = useWishlistAction();
   return (
     <>
-      <section className="hero-band">
+      <section
+        className="hero-band"
+        role="region"
+        aria-label="Featured collections"
+        aria-roledescription="carousel"
+        onMouseEnter={() => setHeroPaused(true)}
+        onMouseLeave={() => setHeroPaused(false)}
+        onFocusCapture={() => setHeroPaused(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget))
+            setHeroPaused(false);
+        }}
+      >
         <div className="shell hero-layout">
-          <div className="hero-copy">
-            <span className="hero-kicker">
-              NEW COLLECTION
-            </span>
+          <div className="hero-copy" key={activeHero.kicker}>
+            <span className="hero-kicker">{activeHero.kicker}</span>
             <h1>
-              Let your beauty <em>speak</em>
+              {activeHero.title} <em>{activeHero.accent}</em>
             </h1>
-            <p>
-              Beauty and style picks for the way you want to show up.
-            </p>
-            <Link to="/shop" className="button button-dark">
-              Shop Now <ArrowRight size={17} />
+            <p>{activeHero.description}</p>
+            <Link to={activeHero.to} className="button button-dark">
+              {activeHero.action} <ArrowRight size={17} />
             </Link>
             <div className="hero-proof">
               <span>
@@ -329,10 +409,37 @@ export function HomePage() {
           </div>
           <div className="hero-image">
             <img
-              src="/images/hero_wig.jpeg"
-              alt="Display of wigs on mannequin stands"
+              key={activeHero.image}
+              src={activeHero.image}
+              alt={activeHero.alt}
             />
-            <span className="hero-image-index">01 / 03</span>
+            <div className="hero-slide-controls">
+              <button
+                type="button"
+                aria-label="Previous featured collection"
+                onClick={() => moveHero(-1)}
+              >
+                <ChevronLeft size={17} />
+              </button>
+              <div className="hero-slide-dots" aria-label="Choose a collection">
+                {heroSlides.map((slide, index) => (
+                  <button
+                    key={slide.kicker}
+                    type="button"
+                    aria-label={`Show slide ${index + 1}: ${slide.kicker}`}
+                    aria-current={index === activeHeroIndex % heroSlides.length}
+                    onClick={() => setActiveHeroIndex(index)}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                aria-label="Next featured collection"
+                onClick={() => moveHero(1)}
+              >
+                <ChevronRight size={17} />
+              </button>
+            </div>
           </div>
           <span className="hero-orbit" aria-hidden="true">
             AB
