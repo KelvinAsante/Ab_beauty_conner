@@ -501,16 +501,41 @@ const blankProduct = {
   main_image_url: "",
 };
 
+function getProductDraft(id) {
+  try {
+    const saved = sessionStorage.getItem(`admin-product-draft:${id || "new"}`);
+    if (!saved) return null;
+    const draft = JSON.parse(saved);
+    if (!draft || typeof draft.form !== "object" || !draft.form) return null;
+    return {
+      form: Object.fromEntries(
+        Object.keys(blankProduct).map((key) => [
+          key,
+          ["is_active", "is_featured"].includes(key)
+            ? Boolean(draft.form[key] ?? blankProduct[key])
+            : String(draft.form[key] ?? blankProduct[key]),
+        ]),
+      ),
+      autoSlug: Boolean(draft.autoSlug),
+    };
+  } catch (reason) {
+    console.error("Unable to restore the product draft.", reason);
+    return null;
+  }
+}
+
 export function AdminProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [form, setForm] = useState(blankProduct);
+  const [initialDraft] = useState(() => (id ? null : getProductDraft()));
+  const [form, setForm] = useState(initialDraft?.form ?? blankProduct);
   const [categories, setCategories] = useState([]);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(Boolean(id));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [autoSlug, setAutoSlug] = useState(true);
+  const [autoSlug, setAutoSlug] = useState(initialDraft?.autoSlug ?? true);
+  const [draftReady, setDraftReady] = useState(!id);
   useEffect(() => {
     listCategories({ admin: true })
       .then(setCategories)
@@ -521,24 +546,38 @@ export function AdminProductForm() {
           const product = items.find((item) => item.id === id);
           if (!product) setError("Product not found or unavailable.");
           else {
+            const draft = getProductDraft(id);
             setForm(
-              Object.fromEntries(
-                Object.keys(blankProduct).map((key) => [
-                  key,
-                  ["is_active", "is_featured"].includes(key)
-                    ? Boolean(product[key])
-                    : product[key] == null
-                      ? ""
-                      : String(product[key]),
-                ]),
-              ),
+              draft?.form ??
+                Object.fromEntries(
+                  Object.keys(blankProduct).map((key) => [
+                    key,
+                    ["is_active", "is_featured"].includes(key)
+                      ? Boolean(product[key])
+                      : product[key] == null
+                        ? ""
+                        : String(product[key]),
+                  ]),
+                ),
             );
-            setAutoSlug(false);
+            setAutoSlug(draft?.autoSlug ?? false);
+            setDraftReady(true);
           }
         })
         .catch((reason) => setError(reason.message))
         .finally(() => setLoading(false));
   }, [id]);
+  useEffect(() => {
+    if (!draftReady) return;
+    try {
+      sessionStorage.setItem(
+        `admin-product-draft:${id || "new"}`,
+        JSON.stringify({ form, autoSlug }),
+      );
+    } catch (reason) {
+      setError(`Could not save this product draft: ${reason.message}`);
+    }
+  }, [id, form, autoSlug, draftReady]);
   function setField(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
   }
@@ -592,6 +631,11 @@ export function AdminProductForm() {
           });
         if (!id && requestedActive)
           await updateProduct(saved.id, { is_active: true });
+      }
+      try {
+        sessionStorage.removeItem(`admin-product-draft:${id || "new"}`);
+      } catch (reason) {
+        console.error("Unable to clear the saved product draft.", reason);
       }
       navigate("/admin/products", { replace: true, state: { saved: true } });
     } catch (reason) {

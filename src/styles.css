@@ -2042,44 +2042,55 @@ a.contact-method-card:hover {
 }
 .product-assistant {
   margin-block: 36px;
-  padding: 26px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #fbf9fc;
+  padding: clamp(20px, 4vw, 40px);
+  border-radius: 9px;
+  background: linear-gradient(145deg, #ffd8cb 0%, #fff0e8 54%, #fff8f1 100%);
 }
-.assistant-heading {
-  display: flex;
+.assistant-panel {
+  width: min(840px, 100%);
+  margin-inline: auto;
+  padding: clamp(19px, 3.5vw, 32px);
+  border: 1px solid rgba(93, 67, 58, 0.08);
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 15px 40px rgba(111, 73, 58, 0.09);
+}
+.assistant-panel-heading {
+  text-align: center;
+}
+.assistant-kicker {
+  min-height: 25px;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 20px;
+  background: #292529;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
 }
-.assistant-icon {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  flex: none;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--lavender);
-  color: var(--purple-dark);
+.assistant-panel-heading h2 {
+  margin: 12px 0 5px;
+  font-size: clamp(22px, 3vw, 28px);
 }
-.assistant-heading h2 {
-  margin: 5px 0 0;
-  font-size: 24px;
-}
-.assistant-intro {
-  margin: 14px 0;
-  color: #716a75;
+.assistant-panel-heading p {
+  margin: 0;
+  color: #827a7b;
   font-size: 12px;
 }
 .assistant-messages {
   display: grid;
+  align-content: start;
   gap: 10px;
-  max-height: 340px;
+  min-height: 105px;
+  max-height: 320px;
   overflow-y: auto;
-  padding: 15px;
-  border: 1px solid #eee9f0;
-  border-radius: 4px;
-  background: #fff;
+  margin-top: 20px;
+  padding: 15px 0;
+  border-top: 1px solid #f1ece9;
+  border-bottom: 1px solid #f1ece9;
 }
 .assistant-welcome,
 .assistant-message {
@@ -2093,54 +2104,129 @@ a.contact-method-card:hover {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.assistant-welcome,
+.assistant-welcome {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #f8f5f3;
+}
+.assistant-welcome-icon {
+  display: inline-flex;
+  flex: none;
+  margin-top: 2px;
+  color: #9e6d5c;
+}
 .assistant-message-assistant {
-  background: #f3eff7;
+  background: #f8f5f3;
+}
+.assistant-inline-source {
+  color: #76569e;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.assistant-inline-source:hover {
+  color: #574076;
+}
+.assistant-sources {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid #e8dfdb;
+}
+.assistant-sources b {
+  color: #827a7b;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.assistant-sources span {
+  color: #76569e;
+  font-size: 10px;
 }
 .assistant-message-user {
   justify-self: end;
-  background: var(--purple-dark);
+  background: #292529;
   color: #fff;
-}
-.assistant-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
-}
-.assistant-suggestions button {
-  padding: 7px 10px;
-  border: 1px solid #ded5e7;
-  border-radius: 20px;
-  background: #fff;
-  color: var(--purple-dark);
-  font-size: 11px;
-}
-.assistant-suggestions button:hover {
-  border-color: var(--purple);
 }
 .assistant-form {
   display: flex;
-  gap: 9px;
-  margin-top: 12px;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 6px 6px 6px 15px;
+  border: 1px solid #eee8e5;
+  border-radius: 30px;
+  background: #fcfbfa;
 }
 .assistant-form input {
   min-width: 0;
+  min-height: 42px;
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #e4dfe7;
-  border-radius: 4px;
+  padding: 8px 0;
+  border: 0;
   outline: none;
-  background: #fff;
-  font-size: 12px;
+  background: transparent;
+  color: #2f2934;
+  font-size: 13px;
+}
+.assistant-form input::placeholder {
+  color: #a09a99;
 }
 .assistant-form input:focus {
-  border-color: #9c7eb7;
-  box-shadow: 0 0 0 3px rgba(118, 86, 158, 0.1);
+  box-shadow: none;
 }
-.assistant-form button:disabled {
+.assistant-send {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #292529;
+  color: #fff;
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+.assistant-send:not(:disabled):hover {
+  transform: scale(1.05);
+  background: #574076;
+}
+.assistant-send:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.45;
+}
+.assistant-suggestions {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  margin-top: 14px;
+}
+.assistant-suggestions > span {
+  color: #938b88;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+}
+.assistant-suggestions button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #71635f;
+  font-size: 10px;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: #d7cac4;
+  text-underline-offset: 3px;
+}
+.assistant-suggestions button:hover {
+  color: #292529;
+  text-decoration-color: currentColor;
 }
 .assistant-error {
   margin: 10px 0 0;
@@ -2149,9 +2235,12 @@ a.contact-method-card:hover {
 }
 .assistant-disclaimer {
   display: block;
-  margin-top: 10px;
-  color: #8f8793;
+  max-width: 640px;
+  margin: 14px auto 0;
+  color: #776862;
   font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
 }
 .sr-only {
   position: absolute;
@@ -4414,24 +4503,48 @@ a.contact-method-card:hover {
     gap: 14px;
   }
   .product-assistant {
-    padding: 18px;
+    margin-block: 22px;
+    padding: 14px;
+  }
+  .assistant-panel {
+    padding: 15px;
+  }
+  .assistant-panel-heading h2 {
+    margin: 8px 0 0;
+    font-size: 21px;
+  }
+  .assistant-panel-heading p {
+    display: none;
   }
   .assistant-messages {
-    max-height: min(45vh, 300px);
-    padding: 12px;
+    min-height: 0;
+    max-height: min(32vh, 190px);
+    gap: 7px;
+    margin-top: 11px;
+    padding: 9px 0;
   }
   .assistant-welcome,
   .assistant-message {
     max-width: 100%;
+    padding: 8px 10px;
+    font-size: 11px;
   }
-  .assistant-form .button {
-    min-height: 44px;
-    padding-inline: 12px;
-    white-space: nowrap;
+  .assistant-form {
+    margin-top: 10px;
+    gap: 7px;
+    padding: 4px 4px 4px 12px;
   }
   .assistant-form input {
-    min-height: 44px;
+    min-height: 40px;
     font-size: 16px;
+  }
+  .assistant-send {
+    width: 40px;
+    height: 40px;
+  }
+  .assistant-suggestions,
+  .assistant-disclaimer {
+    display: none;
   }
   .gallery-main {
     height: min(115vw, 480px);
@@ -4728,30 +4841,18 @@ a.contact-method-card:hover {
     width: calc(100% - 24px);
   }
   .product-assistant {
-    margin-block: 24px;
-    padding: 14px;
+    margin-block: 18px;
+    padding: 11px 9px;
   }
-  .assistant-heading {
-    align-items: flex-start;
-    gap: 9px;
+  .assistant-panel {
+    padding: 13px 11px;
   }
-  .assistant-icon {
-    width: 34px;
-    height: 34px;
-  }
-  .assistant-heading h2 {
-    font-size: 20px;
+  .assistant-panel-heading h2 {
+    font-size: 19px;
     overflow-wrap: anywhere;
   }
-  .assistant-suggestions {
-    gap: 6px;
-  }
-  .assistant-suggestions button {
-    min-height: 38px;
-    text-align: left;
-  }
-  .assistant-disclaimer {
-    line-height: 1.5;
+  .assistant-form input {
+    font-size: 16px;
   }
   .brand {
     font-size: 11px;

@@ -44,7 +44,7 @@ Deploy the function:
 npx supabase functions deploy product-assistant
 ```
 
-The function reads active product details from the database and only sends those details and the recent conversation to the AI provider. Product information may be incomplete, so the assistant is instructed to say when a detail is not listed.
+The function reads active product and category details from the database and sends those details and the recent conversation to OpenRouter. The assistant checks the store listing first, then searches the store website (using `SITE_URL`, or the request origin if it is not configured) before considering external sources. It can perform up to two web searches per request; only external source names are shown without links. OpenRouter web search is currently a beta server tool and may incur additional usage charges. Product names and shopper questions may be sent to OpenRouter and its search provider; do not enter sensitive personal information in the assistant.
 
 ## Configure the webhook
 
