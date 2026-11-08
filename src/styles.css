@@ -3243,6 +3243,179 @@ a.contact-method-card:hover {
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
+.site-preloader {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  opacity: 1;
+  transition: opacity 260ms ease;
+}
+.site-preloader.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+.site-preloader video {
+  display: block;
+  width: min(280px, 62vw);
+  max-height: 60vh;
+  object-fit: contain;
+}
+.welcome-offer-backdrop {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(31, 20, 39, 0.62);
+  animation: welcome-offer-fade-in 180ms ease-out;
+}
+.welcome-offer {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  width: min(820px, 100%);
+  max-height: min(680px, calc(100vh - 40px));
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(20, 12, 27, 0.3);
+  animation: welcome-offer-rise 240ms ease-out;
+}
+.welcome-offer-image {
+  position: relative;
+  min-height: 430px;
+  overflow: hidden;
+  background: #4c137a;
+}
+.welcome-offer-image img {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+  object-position: center;
+}
+.welcome-offer-image > span {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 7px 9px;
+  border-radius: 3px;
+  background: rgba(42, 17, 61, 0.72);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+.welcome-offer-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(28px, 5vw, 54px);
+}
+.welcome-offer-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #eee8f1;
+  border-radius: 50%;
+  background: #fff;
+  color: #54495d;
+}
+.welcome-offer-close:hover {
+  background: #f7f2fa;
+}
+.welcome-offer-content .eyebrow {
+  margin-bottom: 15px;
+  color: #76569e;
+  font-size: 9px;
+  letter-spacing: 1.6px;
+}
+.welcome-offer-content h2 {
+  margin: 0 0 14px;
+  color: #302638;
+  font-size: clamp(29px, 4vw, 43px);
+  line-height: 1.15;
+}
+.welcome-offer-content h2 em {
+  color: #7650a1;
+  font-style: normal;
+}
+.welcome-offer-content > p {
+  margin: 0 0 22px;
+  color: #756d7c;
+  font-size: 12px;
+  line-height: 1.75;
+}
+.welcome-offer-cta {
+  min-height: 46px;
+}
+@keyframes welcome-offer-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes welcome-offer-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 600px) {
+  .welcome-offer-backdrop {
+    padding: 14px;
+  }
+  .welcome-offer {
+    grid-template-columns: 1fr;
+    width: min(440px, 100%);
+    max-height: calc(100dvh - 28px);
+    overflow-y: auto;
+  }
+  .welcome-offer-image {
+    min-height: 0;
+    height: clamp(125px, 27vh, 205px);
+  }
+  .welcome-offer-image img {
+    object-position: center 38%;
+  }
+  .welcome-offer-content {
+    padding: 24px 23px 22px;
+  }
+  .welcome-offer-close {
+    top: 12px;
+    right: 12px;
+  }
+  .welcome-offer-content .eyebrow {
+    max-width: calc(100% - 35px);
+    margin-bottom: 10px;
+    font-size: 8px;
+  }
+  .welcome-offer-content h2 {
+    margin-bottom: 9px;
+    font-size: clamp(27px, 8vw, 35px);
+  }
+  .welcome-offer-content > p {
+    margin-bottom: 15px;
+    font-size: 11px;
+  }
+}
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -4586,7 +4759,7 @@ a.contact-method-card:hover {
   }
   .product-detail-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 4px;
   }
   .product-assistant {
     margin-block: 22px;
@@ -4636,7 +4809,7 @@ a.contact-method-card:hover {
     height: min(115vw, 480px);
   }
   .product-info {
-    padding-top: 10px;
+    padding-top: 0;
   }
   .product-info h1 {
     font-size: 33px;
@@ -5489,11 +5662,14 @@ a.contact-method-card:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .hero-copy,
-  .hero-image img {
+  .hero-image img,
+  .welcome-offer-backdrop,
+  .welcome-offer {
     animation: none;
   }
   .hero-slide-controls > button,
-  .hero-slide-dots button {
+  .hero-slide-dots button,
+  .welcome-offer-backdrop {
     transition: none;
   }
 }

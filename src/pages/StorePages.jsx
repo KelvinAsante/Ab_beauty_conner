@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Link,
   NavLink,
@@ -804,6 +804,7 @@ export function ShopPage() {
 
 export function ProductPage() {
   const { slug } = useParams();
+  const productGridRef = useRef(null);
   const {
     user,
     wishlistIds,
@@ -844,6 +845,17 @@ export function ProductPage() {
       alive = false;
     };
   }, [slug]);
+  useLayoutEffect(() => {
+    if (!product) return;
+    const productGrid = productGridRef.current;
+    if (!productGrid) return;
+    const headerHeight =
+      document.querySelector(".store-header")?.getBoundingClientRect()
+        .height ?? 0;
+    const top =
+      productGrid.getBoundingClientRect().top + window.scrollY - headerHeight;
+    window.scrollTo(0, Math.max(top, 0));
+  }, [product?.id]);
   async function addToCart() {
     try {
       await addProductToCart(product, quantity);
@@ -921,7 +933,7 @@ export function ProductPage() {
           <span>/</span>
           <b>{product.name}</b>
         </div>
-        <div className="product-detail-grid">
+        <div className="product-detail-grid" ref={productGridRef}>
           <div className="gallery">
             <div className="gallery-main">
               {image ? (

@@ -1,14 +1,25 @@
-import { lazy, Suspense } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   BrowserRouter,
+  Link,
   Navigate,
   Outlet,
   Route,
   Routes,
   useLocation,
 } from "react-router-dom";
+import { X } from "lucide-react";
 import { useAuth } from "./state/AuthContext.jsx";
 import { StoreLayout, AdminLayout } from "./components/Layout.jsx";
+
+const WELCOME_OFFER_DISMISSED_KEY = "ab-beauty-welcome-offer-dismissed";
 
 const HomePage = lazy(() =>
   import("./pages/StorePages.jsx").then((module) => ({
@@ -161,6 +172,180 @@ function AuthGuard({ admin = false }) {
   return <Outlet />;
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
+function SitePreloader() {
+  const [phase, setPhase] = useState("visible");
+  const dismissed = useRef(false);
+
+  function dismiss() {
+    if (dismissed.current) return;
+    dismissed.current = true;
+    setPhase("leaving");
+    window.setTimeout(() => setPhase("hidden"), 260);
+  }
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      dismiss();
+      return;
+    }
+    const timeout = window.setTimeout(dismiss, 2800);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  if (phase === "hidden") return null;
+  return (
+    <div
+      className={`site-preloader ${phase === "leaving" ? "is-leaving" : ""}`}
+      role="status"
+      aria-label="Loading AB Beauty Conner"
+    >
+      <video
+        src="/cart-preloader.mp4"
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+        onEnded={dismiss}
+        onError={dismiss}
+      />
+      <span className="sr-only">Loading AB Beauty Conner</span>
+    </div>
+  );
+}
+
+function WelcomeOfferPopup() {
+  const { pathname } = useLocation();
+  const { user, loading } = useAuth();
+  const [open, setOpen] = useState(false);
+  const closeButtonRef = useRef(null);
+  const popupRef = useRef(null);
+
+  const eligiblePage =
+    pathname === "/" ||
+    pathname === "/shop" ||
+    pathname.startsWith("/category/") ||
+    pathname.startsWith("/product/");
+
+  useEffect(() => {
+    if (loading || user || !eligiblePage) return;
+    try {
+      if (window.localStorage.getItem(WELCOME_OFFER_DISMISSED_KEY)) return;
+    } catch (error) {
+      console.error("Unable to read welcome offer preference.", error);
+    }
+
+    const timer = window.setTimeout(() => setOpen(true), 6000);
+    return () => window.clearTimeout(timer);
+  }, [eligiblePage, loading, user]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        dismiss();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = popupRef.current?.querySelectorAll(
+        "a[href], button:not([disabled])",
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  function dismiss() {
+    setOpen(false);
+    try {
+      window.localStorage.setItem(WELCOME_OFFER_DISMISSED_KEY, "true");
+    } catch (error) {
+      console.error("Unable to save welcome offer preference.", error);
+    }
+  }
+
+  if (!open || user || !eligiblePage) return null;
+  return (
+    <div
+      className="welcome-offer-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) dismiss();
+      }}
+    >
+      <section
+        ref={popupRef}
+        className="welcome-offer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-offer-title"
+      >
+        <div className="welcome-offer-image">
+          <img
+            src="/images/ab.jpg"
+            alt="AB Beauty Conner skincare and beauty"
+          />
+          <span>AB BEAUTY CONNER</span>
+        </div>
+        <div className="welcome-offer-content">
+          <button
+            ref={closeButtonRef}
+            className="welcome-offer-close"
+            type="button"
+            aria-label="Close welcome offer"
+            onClick={dismiss}
+          >
+            <X size={19} />
+          </button>
+          <span className="eyebrow">A LITTLE SOMETHING FOR YOU</span>
+          <h2 id="welcome-offer-title">
+            Welcome,
+            <br />
+            Enjoy <em>20% off</em>
+            <br />
+            your first order.
+          </h2>
+          <p>Discover beauty and style made to help you feel like yourself.</p>
+          <Link
+            className="button button-dark welcome-offer-cta"
+            to="/"
+            onClick={dismiss}
+          >
+            Explore the collection
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function AppRoutes() {
   return (
     <Suspense
@@ -225,6 +410,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
+      <SitePreloader />
+      <WelcomeOfferPopup />
       <AppRoutes />
     </BrowserRouter>
   );
