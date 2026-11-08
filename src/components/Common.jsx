@@ -107,9 +107,12 @@ export function ProductCard({ product, compact = false, onWishlistChange }) {
         <Link to={`/product/${product.slug}`} className="product-name">
           {product.name}
         </Link>
-        {product.brand && (
-          <span className="product-brand">{product.brand}</span>
-        )}
+        <span
+          className={`product-brand${product.brand ? "" : " product-brand-empty"}`}
+          aria-hidden={product.brand ? undefined : "true"}
+        >
+          {product.brand || "\u00a0"}
+        </span>
         <div className="product-price">
           <strong>{formatMoney(price, storeSettings?.currency_code)}</strong>
           {discount > 0 && (

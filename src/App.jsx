@@ -188,8 +188,8 @@ function AppRoutes() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/account/wishlist" element={<WishlistPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route element={<AuthGuard />}>
-            <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/payment/return" element={<PaymentReturnPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/account/orders" element={<OrdersPage />} />

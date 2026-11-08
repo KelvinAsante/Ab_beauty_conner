@@ -2407,10 +2407,21 @@ function formatDeliveryFee(value, currency = "GHS") {
 }
 
 export function CheckoutPage() {
-  const { user, profile } = useAuth();
+  const {
+    user,
+    profile,
+    loading: authLoading,
+    guestCart,
+    completeAuthentication,
+  } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [account, setAccount] = useState({
+    fullName: profile?.full_name || "",
+    email: "",
+    password: "",
+  });
   const [form, setForm] = useState({
     full_name: profile?.full_name || "",
     phone: profile?.phone || "",
@@ -2423,28 +2434,50 @@ export function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    Promise.all([loadCart(user.id), listAddresses(user.id), getStoreSettings()])
-      .then(([cart, saved, store]) => {
-        setCartItems(cart.items);
-        setAddresses(saved);
-        setSettings(store);
-        if (saved[0])
-          setForm({
-            full_name: saved[0].full_name,
-            phone: saved[0].phone,
-            address: saved[0].address,
-            city: deliveryOptions.some(
-              (option) => option.location === saved[0].city,
-            )
-              ? saved[0].city
-              : "",
-            region: saved[0].region,
-            country: saved[0].country,
-          });
+    if (authLoading) return;
+    let active = true;
+    setLoading(true);
+    const loadCheckout = user
+      ? Promise.all([
+          loadCart(user.id),
+          listAddresses(user.id),
+          getStoreSettings(),
+        ]).then(([cart, saved, store]) => {
+          if (!active) return;
+          setCartItems(cart.items);
+          setAddresses(saved);
+          setSettings(store);
+          if (saved[0])
+            setForm({
+              full_name: saved[0].full_name,
+              phone: saved[0].phone,
+              address: saved[0].address,
+              city: deliveryOptions.some(
+                (option) => option.location === saved[0].city,
+              )
+                ? saved[0].city
+                : "",
+              region: saved[0].region,
+              country: saved[0].country,
+            });
+        })
+      : getStoreSettings().then((store) => {
+          if (!active) return;
+          setCartItems(guestCart);
+          setSettings(store);
+          setAddresses([]);
+        });
+    loadCheckout
+      .catch((reason) => {
+        if (active) setError(reason.message);
       })
-      .catch((reason) => setError(reason.message))
-      .finally(() => setLoading(false));
-  }, [user.id]);
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [authLoading, user?.id, guestCart]);
   const subtotal = cartItems.reduce((sum, item) => {
     const product = item.products;
     return (
@@ -2471,6 +2504,26 @@ export function CheckoutPage() {
     setBusy(true);
     setError("");
     try {
+      if (!user) {
+        if (account.password.length < 8) {
+          throw new Error("Use a password with at least 8 characters.");
+        }
+        const created = await signUp({
+          fullName: account.fullName,
+          email: account.email,
+          password: account.password,
+        });
+        if (!created.session || !created.user) {
+          throw new Error(
+            "Your account was created. Verify your email, sign in, and return to checkout to pay. Your cart is saved.",
+          );
+        }
+        await completeAuthentication(created.user.id);
+        setForm((current) => ({
+          ...current,
+          full_name: account.fullName,
+        }));
+      }
       const authorizationUrl = await initializePaystackPayment(form);
       window.location.assign(authorizationUrl);
     } catch (reason) {
@@ -2492,13 +2545,84 @@ export function CheckoutPage() {
       <div className="checkout-heading">
         <span className="eyebrow">ALMOST YOURS</span>
         <h1>Delivery details</h1>
-        <p>Enter your delivery details and pay securely online with Paystack.</p>
+        <p>
+          Enter your delivery details and pay securely online with Paystack.
+        </p>
+        {!user && (
+          <p>
+            New here? Create your account as you check out.{" "}
+            <Link to="/signin" state={{ from: { pathname: "/checkout" } }}>
+              Already have an account? Sign in
+            </Link>
+          </p>
+        )}
       </div>
       {loading ? (
         <LoadingBlock rows={2} />
       ) : (
         <form className="checkout-grid" onSubmit={submit}>
           <div className="checkout-form-column">
+            {!user && (
+              <div className="panel">
+                <div className="panel-heading">
+                  <CircleUserRound />
+                  <div>
+                    <h2>Create your account</h2>
+                    <p>
+                      We’ll create your customer account and keep your orders
+                      together.
+                    </p>
+                  </div>
+                </div>
+                <div className="form-grid">
+                  <label>
+                    Full name
+                    <input
+                      autoComplete="name"
+                      required
+                      value={account.fullName}
+                      onChange={(event) => {
+                        const fullName = event.target.value;
+                        setAccount({ ...account, fullName });
+                        setForm((current) => ({
+                          ...current,
+                          full_name: fullName,
+                        }));
+                      }}
+                    />
+                  </label>
+                  <label>
+                    Email address
+                    <input
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={account.email}
+                      onChange={(event) =>
+                        setAccount({ ...account, email: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Create password
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                      value={account.password}
+                      onChange={(event) =>
+                        setAccount({
+                          ...account,
+                          password: event.target.value,
+                        })
+                      }
+                    />
+                    <small>Use at least 8 characters.</small>
+                  </label>
+                </div>
+              </div>
+            )}
             <div className="panel">
               <div className="panel-heading">
                 <MapPin />
@@ -2541,11 +2665,11 @@ export function CheckoutPage() {
               )}
               <div className="form-grid">
                 {[
-                ["full_name", "Full name"],
-                ["phone", "Phone number"],
-                ["address", "Street address"],
-                ["region", "Region"],
-                ["country", "Country"],
+                  ["full_name", "Full name"],
+                  ["phone", "Phone number"],
+                  ["address", "Street address"],
+                  ["region", "Region"],
+                  ["country", "Country"],
                 ].map(([key, label]) => (
                   <label key={key}>
                     {label}
