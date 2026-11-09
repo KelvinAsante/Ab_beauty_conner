@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowDownRight,
@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   ShoppingCart,
+  Trash2,
   Upload,
   Users,
   X,
@@ -21,6 +22,9 @@ import {
 import { supabase } from "../lib/supabase.js";
 import {
   getAdminSummary,
+  getLatestAdminOrderCreatedAt,
+  deleteOrder,
+  listAdminOrdersSince,
   listAllOrders,
   listAllReviews,
   listCustomers,
@@ -68,7 +72,7 @@ function useAdminLoad(loader, dependencies = []) {
     error: "",
   });
   const [version, setVersion] = useState(0);
-  const refresh = () => setVersion((value) => value + 1);
+  const refresh = useCallback(() => setVersion((value) => value + 1), []);
   useEffect(() => {
     let active = true;
     setState({ data: undefined, loading: true, error: "" });
@@ -90,29 +94,215 @@ function useAdminLoad(loader, dependencies = []) {
   return { ...state, refresh };
 }
 
-function Metric({ label, value, icon: Icon, note }) {
+function Metric({ label, value, icon: Icon, note, to }) {
   return (
-    <article className="metric-card">
+    <Link className="metric-card metric-card-link" to={to}>
       <span className="metric-icon">
         <Icon size={19} />
       </span>
       <span className="metric-label">{label}</span>
       <b className="metric-value">{value}</b>
       <small>{note}</small>
-    </article>
+    </Link>
+  );
+}
+
+function NewOrderDialog({ order, currencyCode, onClose }) {
+  const closeButtonRef = useRef(null);
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+    function handleKeyDown(event) {
+      if (event.key === "Escape") onClose();
+      if (event.key !== "Tab") return;
+      const focusable = dialogRef.current?.querySelectorAll(
+        "a[href], button:not([disabled])",
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="new-order-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        ref={dialogRef}
+        className="new-order-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-order-title"
+      >
+        <div className="new-order-heading">
+          <div>
+            <span className="eyebrow">NEW CUSTOMER ORDER</span>
+            <h2 id="new-order-title">{order.order_number}</h2>
+          </div>
+          <button
+            ref={closeButtonRef}
+            className="icon-button"
+            type="button"
+            aria-label="Close new order details"
+            onClick={onClose}
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="new-order-details">
+          <div className="new-order-summary">
+            <span>{new Date(order.created_at).toLocaleString()}</span>
+            <b>Total: {formatMoney(order.total_amount, currencyCode)}</b>
+          </div>
+          <div>
+            <b>{order.shipping_full_name}</b>
+            <a href={`tel:${order.shipping_phone}`}>{order.shipping_phone}</a>
+            <span>
+              {order.shipping_address}, {order.shipping_city},{" "}
+              {order.shipping_region}
+            </span>
+          </div>
+          <div className="new-order-items">
+            <b>Items</b>
+            {(order.order_items || []).map((item) => (
+              <div key={item.id}>
+                <span>
+                  {item.product_name} × {item.quantity}
+                </span>
+                <strong>{formatMoney(item.subtotal, currencyCode)}</strong>
+              </div>
+            ))}
+            <div>
+              <span>Delivery fee</span>
+              <strong>{formatMoney(order.delivery_fee, currencyCode)}</strong>
+            </div>
+          </div>
+          <div className="new-order-statuses">
+            <span
+              className={`status-pill ${order.payment_status === "paid" ? "status-active" : "status-inactive"}`}
+            >
+              Payment: {order.payment_status}
+            </span>
+            <span className={`status-pill status-${order.status}`}>
+              Order: {order.status}
+            </span>
+          </div>
+        </div>
+        <Link
+          className="button button-dark button-wide"
+          to="/admin/orders"
+          onClick={onClose}
+        >
+          View all order details <ArrowRight size={16} />
+        </Link>
+      </section>
+    </div>
   );
 }
 
 export function AdminDashboard() {
   const { storeSettings } = useAuth();
-  const { data, loading, error } = useAdminLoad(getAdminSummary);
+  const { data, loading, error, refresh } = useAdminLoad(getAdminSummary);
+  const lastOrderCreatedAt = useRef(null);
+  const seenOrderIds = useRef(new Set());
+  const [newOrders, setNewOrders] = useState([]);
+  const [newOrderError, setNewOrderError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    let checking = false;
+    let initializing = false;
+    let baselineReady = false;
+    async function checkForNewOrders() {
+      if (!baselineReady || checking) return;
+      checking = true;
+      try {
+        const orders = await listAdminOrdersSince(lastOrderCreatedAt.current);
+        if (!active) return;
+        if (orders.length) {
+          lastOrderCreatedAt.current = orders[orders.length - 1].created_at;
+        }
+        const unseenOrders = orders.filter((order) => {
+          if (seenOrderIds.current.has(order.id)) return false;
+          seenOrderIds.current.add(order.id);
+          return true;
+        });
+        if (unseenOrders.length) {
+          setNewOrders((current) => [...current, ...unseenOrders]);
+          refresh();
+        }
+        setNewOrderError("");
+      } catch (reason) {
+        if (active) {
+          setNewOrderError(
+            reason.message || "Unable to check for new customer orders.",
+          );
+        }
+      } finally {
+        checking = false;
+      }
+    }
+    async function startOrderPolling() {
+      if (initializing) return;
+      initializing = true;
+      try {
+        const latestOrderCreatedAt = await getLatestAdminOrderCreatedAt();
+        if (!active) return;
+        lastOrderCreatedAt.current =
+          latestOrderCreatedAt || new Date().toISOString();
+        baselineReady = true;
+      } catch (reason) {
+        if (active) {
+          setNewOrderError(
+            reason.message || "Unable to check for new customer orders.",
+          );
+        }
+      } finally {
+        initializing = false;
+      }
+    }
+    startOrderPolling();
+    const interval = window.setInterval(() => {
+      if (baselineReady) checkForNewOrders();
+      else startOrderPolling();
+    }, 10000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [refresh]);
+
+  const closeNewOrder = useCallback(
+    () => setNewOrders((current) => current.slice(1)),
+    [],
+  );
+
   return (
     <>
       <PageTitle
         title="Good morning."
         detail="A clear view of what’s happening across your store."
       />
-      <Notice message={error} />
+      <Notice message={error || newOrderError} />
       {loading ? (
         <div className="metric-grid">
           {Array.from({ length: 4 }, (_, i) => (
@@ -128,18 +318,21 @@ export function AdminDashboard() {
                 value={data.totalProducts}
                 icon={Package}
                 note={`${data.activeProducts} currently active`}
+                to="/admin/products"
               />
               <Metric
                 label="Customers"
                 value={data.customers}
                 icon={Users}
                 note="Registered customer profiles"
+                to="/admin/customers"
               />
               <Metric
                 label="All orders"
                 value={data.orders}
                 icon={ShoppingCart}
                 note={`${data.pendingOrders} awaiting action`}
+                to="/admin/orders"
               />
               <Metric
                 label="Paid revenue"
@@ -149,6 +342,7 @@ export function AdminDashboard() {
                 )}
                 icon={ArrowUpRight}
                 note="Only orders marked paid"
+                to="/admin/orders"
               />
             </div>
             <div className="dashboard-lower">
@@ -257,6 +451,13 @@ export function AdminDashboard() {
             </div>
           </>
         )
+      )}
+      {newOrders[0] && (
+        <NewOrderDialog
+          order={newOrders[0]}
+          currencyCode={storeSettings?.currency_code}
+          onClose={closeNewOrder}
+        />
       )}
     </>
   );
@@ -1147,6 +1348,7 @@ export function AdminOrders() {
   } = useAdminLoad(listAllOrders);
   const [search, setSearch] = useState("");
   const [actionError, setActionError] = useState("");
+  const [deletingOrderId, setDeletingOrderId] = useState("");
   const filtered = orders.filter((order) =>
     `${order.order_number} ${order.shipping_full_name} ${order.shipping_phone}`
       .toLowerCase()
@@ -1158,6 +1360,24 @@ export function AdminOrders() {
       refresh();
     } catch (reason) {
       setActionError(reason.message);
+    }
+  }
+  async function remove(order) {
+    if (
+      !window.confirm(
+        `Permanently delete order ${order.order_number}? This also removes its order items and customer order history. This does not issue a refund.`,
+      )
+    )
+      return;
+    setDeletingOrderId(order.id);
+    setActionError("");
+    try {
+      await deleteOrder(order.id);
+      refresh();
+    } catch (reason) {
+      setActionError(reason.message || "Unable to delete this order.");
+    } finally {
+      setDeletingOrderId("");
     }
   }
   return (
@@ -1192,6 +1412,7 @@ export function AdminOrders() {
                 <th>Total</th>
                 <th>Payment</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1219,11 +1440,13 @@ export function AdminOrders() {
                                 <img
                                   src={
                                     item.products?.main_image_url ||
-                                    [...(item.products?.product_images || [])]
-                                      .sort(
-                                        (left, right) =>
-                                          left.display_order - right.display_order,
-                                      )[0]?.image_url
+                                    [
+                                      ...(item.products?.product_images || []),
+                                    ].sort(
+                                      (left, right) =>
+                                        left.display_order -
+                                        right.display_order,
+                                    )[0]?.image_url
                                   }
                                   alt={item.product_name}
                                 />
@@ -1275,6 +1498,18 @@ export function AdminOrders() {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td>
+                    <button
+                      className="icon-button subtle-danger"
+                      type="button"
+                      aria-label={`Delete order ${order.order_number}`}
+                      title="Delete order"
+                      disabled={deletingOrderId === order.id}
+                      onClick={() => remove(order)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </tr>
               ))}

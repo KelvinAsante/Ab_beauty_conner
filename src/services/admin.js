@@ -82,11 +82,39 @@ export async function listAllOrders() {
   return data ?? [];
 }
 
+export async function listAdminOrdersSince(createdAt) {
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      "*,order_items(*,products(main_image_url,product_images(image_url,display_order)))",
+    )
+    .gt("created_at", createdAt)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getLatestAdminOrderCreatedAt() {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("created_at")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.created_at ?? null;
+}
+
 export async function updateOrderStatus(id, status) {
   const { error } = await supabase
     .from("orders")
     .update({ status })
     .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteOrder(id) {
+  const { error } = await supabase.from("orders").delete().eq("id", id);
   if (error) throw error;
 }
 

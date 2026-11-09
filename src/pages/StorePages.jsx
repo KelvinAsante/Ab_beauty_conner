@@ -104,64 +104,191 @@ function escapeHtml(value) {
   });
 }
 
-function downloadReceipt(order, currencyCode) {
-  const money = (value) =>
-    escapeHtml(formatMoney(value, currencyCode));
-  const items = (order.order_items || [])
-    .map(
-      (item) => `
-        <tr>
-          <td>${escapeHtml(item.product_name)} × ${escapeHtml(item.quantity)}</td>
-          <td>${money(item.subtotal)}</td>
-        </tr>`,
-    )
-    .join("");
-  const reference = order.payment_reference
-    ? `<p><b>Payment reference:</b> ${escapeHtml(order.payment_reference)}</p>`
-    : "";
-  const date = escapeHtml(new Date(order.created_at).toLocaleString());
-  const document = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Receipt ${escapeHtml(order.order_number)} · AB Beauty Conner</title>
-  <style>
-    body{font:15px Arial,sans-serif;color:#28232a;max-width:720px;margin:40px auto;padding:0 20px}
-    h1{font-size:26px;margin-bottom:4px}h2{font-size:17px;margin-top:32px}
-    .muted{color:#746e76}table{width:100%;border-collapse:collapse;margin-top:16px}
-    th,td{text-align:left;padding:12px 8px;border-bottom:1px solid #e8e4e9}
-    th:last-child,td:last-child{text-align:right}.totals{margin:20px 0 0 auto;width:min(100%,320px)}
-    .totals p{display:flex;justify-content:space-between}.total{font-size:18px;font-weight:bold}
-  </style>
-</head>
-<body>
-  <h1>AB Beauty Conner</h1>
-  <p class="muted">Payment receipt</p>
-  <p><b>Order:</b> ${escapeHtml(order.order_number)}<br><b>Date:</b> ${date}<br><b>Payment status:</b> Paid</p>
-  ${reference}
-  <h2>Customer and delivery</h2>
-  <p>${escapeHtml(order.shipping_full_name)}<br>${escapeHtml(order.shipping_address)}<br>${escapeHtml(order.shipping_city)}, ${escapeHtml(order.shipping_region)}<br>${escapeHtml(order.shipping_phone)}</p>
-  <h2>Order items</h2>
-  <table><thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody>${items}</tbody></table>
-  <div class="totals">
-    <p><span>Subtotal</span><b>${money(order.subtotal)}</b></p>
-    <p><span>Delivery</span><b>${money(order.delivery_fee)}</b></p>
-    <p class="total"><span>Total paid</span><b>${money(order.total_amount)}</b></p>
-  </div>
-  <p class="muted">Thank you for shopping with AB Beauty Conner.</p>
-</body>
-</html>`;
-  const url = URL.createObjectURL(
-    new Blob([document], { type: "text/html;charset=utf-8" }),
+function wrapReceiptText(value, maxLength) {
+  const words = String(value ?? "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (candidate.length > maxLength && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : [""];
+}
+
+async function downloadReceipt(order, currencyCode) {
+  const width = 800;
+  const padding = 48;
+  const lines = [];
+  let y = 225;
+  const addText = (text, x, baseline, options = {}) => {
+    const {
+      size = 20,
+      fill = "#302638",
+      weight = 400,
+      anchor = "start",
+    } = options;
+    return `<text x="${x}" y="${baseline}" font-family="Arial, sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}">${escapeHtml(text)}</text>`;
+  };
+  const addRule = () => {
+    lines.push(
+      `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#e9e3ed" stroke-width="2"/>`,
+    );
+    y += 30;
+  };
+  const addSection = (title) => {
+    lines.push(addText(title, padding, y, { size: 23, weight: 700 }));
+    y += 34;
+  };
+
+  addText("AB BEAUTY CONNER", padding, 76, {
+    size: 18,
+    fill: "#e7d8f6",
+    weight: 700,
+  });
+  addText("PAYMENT RECEIPT", padding, 137, {
+    size: 34,
+    fill: "#ffffff",
+    weight: 700,
+  });
+  addText(order.order_number, padding, 178, {
+    size: 20,
+    fill: "#f0eaf5",
+  });
+  addText("Order date", padding, y, { size: 17, fill: "#756d7c" });
+  addText(new Date(order.created_at).toLocaleString(), width - padding, y, {
+    size: 17,
+    anchor: "end",
+  });
+  y += 31;
+  addText("Payment status", padding, y, { size: 17, fill: "#756d7c" });
+  addText("Paid", width - padding, y, {
+    size: 17,
+    fill: "#287247",
+    weight: 700,
+    anchor: "end",
+  });
+  y += 31;
+  if (order.payment_reference) {
+    addText("Payment reference", padding, y, {
+      size: 17,
+      fill: "#756d7c",
+    });
+    addText(order.payment_reference, width - padding, y, {
+      size: 17,
+      anchor: "end",
+    });
+    y += 31;
+  }
+
+  addRule();
+  addSection("Customer and delivery");
+  for (const value of [
+    order.shipping_full_name,
+    order.shipping_phone,
+    order.shipping_address,
+    `${order.shipping_city}, ${order.shipping_region}`,
+  ]) {
+    for (const line of wrapReceiptText(value, 68)) {
+      lines.push(addText(line, padding, y, { size: 18 }));
+      y += 27;
+    }
+  }
+
+  addRule();
+  addSection("Order items");
+  for (const item of order.order_items || []) {
+    const itemLines = wrapReceiptText(
+      `${item.product_name} × ${item.quantity}`,
+      52,
+    );
+    lines.push(addText(itemLines[0], padding, y, { size: 18 }));
+    lines.push(
+      addText(formatMoney(item.subtotal, currencyCode), width - padding, y, {
+        size: 18,
+        anchor: "end",
+      }),
+    );
+    y += 27;
+    for (const line of itemLines.slice(1)) {
+      lines.push(addText(line, padding, y, { size: 18 }));
+      y += 27;
+    }
+  }
+
+  addRule();
+  for (const [label, value, isTotal] of [
+    ["Subtotal", order.subtotal, false],
+    ["Delivery", order.delivery_fee, false],
+    ["Total paid", order.total_amount, true],
+  ]) {
+    lines.push(
+      addText(label, padding, y, {
+        size: isTotal ? 23 : 18,
+        weight: isTotal ? 700 : 400,
+      }),
+    );
+    lines.push(
+      addText(formatMoney(value, currencyCode), width - padding, y, {
+        size: isTotal ? 23 : 18,
+        weight: 700,
+        anchor: "end",
+      }),
+    );
+    y += isTotal ? 42 : 31;
+  }
+  y += 26;
+  lines.push(
+    addText("Thank you for shopping with AB Beauty Conner.", width / 2, y, {
+      size: 17,
+      fill: "#756d7c",
+      anchor: "middle",
+    }),
   );
-  const link = window.document.createElement("a");
-  link.href = url;
-  link.download = `AB-Beauty-Conner-${order.order_number}-receipt.html`;
-  window.document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const height = y + 48;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="${width}" height="${height}" fill="#ffffff"/><path d="M0 0h${width}v196H0z" fill="#402653"/><rect x="${padding}" y="214" width="${width - padding * 2}" height="${height - 238}" rx="8" fill="#ffffff"/>${lines.join("")}</svg>`;
+  const svgUrl = URL.createObjectURL(
+    new Blob([svg], { type: "image/svg+xml;charset=utf-8" }),
+  );
+  try {
+    const image = new Image();
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () =>
+        reject(new Error("Unable to create the receipt image."));
+      image.src = svgUrl;
+    });
+    const canvas = window.document.createElement("canvas");
+    canvas.width = width * 2;
+    canvas.height = height * 2;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Unable to create the receipt image.");
+    context.scale(2, 2);
+    context.drawImage(image, 0, 0, width, height);
+    const imageBlob = await new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Unable to download the receipt image."));
+      }, "image/png");
+    });
+    const imageUrl = URL.createObjectURL(imageBlob);
+    const link = window.document.createElement("a");
+    link.href = imageUrl;
+    link.download = `AB-Beauty-Conner-${order.order_number}-receipt.png`;
+    window.document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(imageUrl), 1000);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
 }
 
 function useStoreData(load) {
@@ -325,18 +452,16 @@ export function HomePage() {
     };
   }, []);
   const heroSlides = useMemo(() => {
-    const categorySlides = data.categories
-      .slice(0, 4)
-      .map((category) => ({
-        kicker: `SHOP ${category.name.toUpperCase()}`,
-        title: "Find your",
-        accent: category.name,
-        description: `Explore our curated ${category.name.toLowerCase()} collection, selected with care.`,
-        image: getCategoryImage(category),
-        alt: `${category.name} collection`,
-        to: `/category/${category.slug}`,
-        action: `Shop ${category.name}`,
-      }));
+    const categorySlides = data.categories.slice(0, 4).map((category) => ({
+      kicker: `SHOP ${category.name.toUpperCase()}`,
+      title: "Find your",
+      accent: category.name,
+      description: `Explore our curated ${category.name.toLowerCase()} collection, selected with care.`,
+      image: getCategoryImage(category),
+      alt: `${category.name} collection`,
+      to: `/category/${category.slug}`,
+      action: `Shop ${category.name}`,
+    }));
     return categorySlides.length >= 3
       ? categorySlides
       : [...categorySlides, ...fallbackHeroSlides].slice(0, 3);
@@ -850,8 +975,8 @@ export function ProductPage() {
     const productGrid = productGridRef.current;
     if (!productGrid) return;
     const headerHeight =
-      document.querySelector(".store-header")?.getBoundingClientRect()
-        .height ?? 0;
+      document.querySelector(".store-header")?.getBoundingClientRect().height ??
+      0;
     const top =
       productGrid.getBoundingClientRect().top + window.scrollY - headerHeight;
     window.scrollTo(0, Math.max(top, 0));
@@ -1869,9 +1994,15 @@ export function ReceiptPage() {
             <div>
               <button
                 className="button button-outline"
-                onClick={() =>
-                  downloadReceipt(order, storeSettings?.currency_code)
-                }
+                onClick={async () => {
+                  try {
+                    await downloadReceipt(order, storeSettings?.currency_code);
+                  } catch (reason) {
+                    window.alert(
+                      reason.message || "Unable to download the receipt image.",
+                    );
+                  }
+                }}
               >
                 <Download size={16} /> Download receipt
               </button>
@@ -1928,10 +2059,7 @@ export function ReceiptPage() {
                       {item.product_name} × {item.quantity}
                     </span>
                     <b>
-                      {formatMoney(
-                        item.subtotal,
-                        storeSettings?.currency_code,
-                      )}
+                      {formatMoney(item.subtotal, storeSettings?.currency_code)}
                     </b>
                   </div>
                 ))}
@@ -2445,6 +2573,7 @@ export function CheckoutPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const checkoutFormRef = useRef(null);
   useEffect(() => {
     if (authLoading) return;
     let active = true;
@@ -2572,7 +2701,7 @@ export function CheckoutPage() {
       {loading ? (
         <LoadingBlock rows={2} />
       ) : (
-        <form className="checkout-grid" onSubmit={submit}>
+        <form ref={checkoutFormRef} className="checkout-grid" onSubmit={submit}>
           <div className="checkout-form-column">
             {!user && (
               <div className="panel">
@@ -2722,7 +2851,12 @@ export function CheckoutPage() {
                   <p>Complete your payment securely online with Paystack.</p>
                 </div>
               </div>
-              <div className="radio-option payment-option">
+              <button
+                type="button"
+                className="radio-option payment-option payment-option-button"
+                disabled={busy || cartItems.length === 0}
+                onClick={() => checkoutFormRef.current?.requestSubmit()}
+              >
                 <span className="payment-selection-mark" aria-hidden="true">
                   <Check size={13} />
                 </span>
@@ -2748,7 +2882,7 @@ export function CheckoutPage() {
                     </span>
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
             <Notice message={error} />
           </div>
@@ -2833,7 +2967,11 @@ export function PaymentReturnPage() {
   useEffect(() => {
     let active = true;
     if (!reference) {
-      setState({ loading: false, error: "Paystack reference is missing.", order: null });
+      setState({
+        loading: false,
+        error: "Paystack reference is missing.",
+        order: null,
+      });
       return () => {
         active = false;
       };
